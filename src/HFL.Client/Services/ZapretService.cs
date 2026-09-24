@@ -10,18 +10,6 @@ namespace HFL.Client.Services
         private Process? _winwsProcess;
         public bool IsRunning => _winwsProcess != null && !_winwsProcess.HasExited;
 
-        public static readonly string[] DefaultStrategies = new[]
-        {
-            // Strategy 0: Balanced Enterprise (YouTube + Discord + Web)
-            "--wf-tcp=80,443 --wf-udp=443,50000-50050 --dpi-desync=fake,split2 --dpi-desync-autottl=2 --dpi-desync-fooling=md5sig",
-            // Strategy 1: Disorder + Split (Aggressive DPI bypass)
-            "--wf-tcp=80,443 --wf-udp=443,50000-50050 --dpi-desync=disorder2 --dpi-desync-split-pos=1 --dpi-desync-fooling=badseq",
-            // Strategy 2: Fake packet repeats (Ultra resilient)
-            "--wf-tcp=80,443 --wf-udp=443,50000-50050 --dpi-desync=fake --dpi-desync-repeats=6 --dpi-desync-fooling=badsum",
-            // Strategy 3: Discord Voice UDP fix
-            "--wf-tcp=80,443 --wf-udp=50000-50050 --dpi-desync=fake --dpi-desync-any-protocol --dpi-desync-cutoff=d3"
-        };
-
         public bool Start(string? customArgs = null, int strategyIndex = 0)
         {
             Stop();
@@ -29,11 +17,54 @@ namespace HFL.Client.Services
             string winwsPath = FindWinwsBinary();
             if (!File.Exists(winwsPath))
             {
-                // Create dummy placeholder or log if binary not yet extracted
                 return false;
             }
 
-            string args = customArgs ?? DefaultStrategies[Math.Clamp(strategyIndex, 0, DefaultStrategies.Length - 1)];
+            string binDir = Path.GetDirectoryName(winwsPath) ?? "";
+            string listPath = Path.Combine(AppContext.BaseDirectory, "Assets", "lists", "list-general.txt");
+            if (!File.Exists(listPath))
+            {
+                listPath = Path.Combine(binDir, "list-general.txt");
+            }
+
+            string tlsFake = Path.Combine(binDir, "tls_clienthello_www_google_com.bin");
+            string quicFake = Path.Combine(binDir, "quic_initial_www_google_com.bin");
+
+            string args;
+            if (!string.IsNullOrEmpty(customArgs))
+            {
+                args = customArgs;
+            }
+            else
+            {
+                // Proven battle-tested strategies against Russian TSPU/DPI filters
+                switch (strategyIndex)
+                {
+                    case 0:
+                        // Ultimate Strategy: YouTube 4K 60FPS + Discord Gateway & Voice UDP 50000-50050
+                        args = $"--wf-tcp=80,443 --wf-udp=443,50000-50050 " +
+                               $"--filter-udp=443 {(File.Exists(listPath) ? $"--hostlist=\"{listPath}\"" : "")} --dpi-desync=fake --dpi-desync-repeats=6 {(File.Exists(quicFake) ? $"--dpi-desync-fake-quic=\"{quicFake}\"" : "")} --newfilter " +
+                               $"--filter-udp=50000-50050 --dpi-desync=fake --dpi-desync-any-protocol --dpi-desync-cutoff=d3 --newfilter " +
+                               $"--filter-tcp=80,443 {(File.Exists(listPath) ? $"--hostlist=\"{listPath}\"" : "")} --dpi-desync=fake,split2 --dpi-desync-autottl=2 --dpi-desync-fooling=md5sig {(File.Exists(tlsFake) ? $"--dpi-desync-fake-tls=\"{tlsFake}\"" : "")}";
+                        break;
+
+                    case 1:
+                        // Disorder + BadSeq Strategy
+                        args = $"--wf-tcp=80,443 --wf-udp=443,50000-50050 " +
+                               $"--filter-udp=443 --dpi-desync=fake --dpi-desync-repeats=6 --newfilter " +
+                               $"--filter-udp=50000-50050 --dpi-desync=fake --dpi-desync-any-protocol --dpi-desync-cutoff=d3 --newfilter " +
+                               $"--filter-tcp=80,443 {(File.Exists(listPath) ? $"--hostlist=\"{listPath}\"" : "")} --dpi-desync=disorder2 --dpi-desync-split-pos=1 --dpi-desync-fooling=badseq";
+                        break;
+
+                    default:
+                        // Fake + Syndata Strategy
+                        args = $"--wf-tcp=80,443 --wf-udp=443,50000-50050 " +
+                               $"--filter-udp=443 --dpi-desync=fake --newfilter " +
+                               $"--filter-udp=50000-50050 --dpi-desync=fake --dpi-desync-cutoff=d3 --newfilter " +
+                               $"--filter-tcp=80,443 --dpi-desync=fake,syndata --dpi-desync-repeats=8 --dpi-desync-fooling=badsum";
+                        break;
+                }
+            }
 
             try
             {
@@ -44,7 +75,7 @@ namespace HFL.Client.Services
                     UseShellExecute = false,
                     CreateNoWindow = true,
                     WindowStyle = ProcessWindowStyle.Hidden,
-                    WorkingDirectory = Path.GetDirectoryName(winwsPath) ?? ""
+                    WorkingDirectory = binDir
                 };
 
                 _winwsProcess = Process.Start(psi);
@@ -85,7 +116,7 @@ namespace HFL.Client.Services
             catch { }
         }
 
-        private static string FindWinwsBinary()
+        public static string FindWinwsBinary()
         {
             string baseDir = AppContext.BaseDirectory;
             string localBin = Path.Combine(baseDir, "Assets", "bin", "winws.exe");

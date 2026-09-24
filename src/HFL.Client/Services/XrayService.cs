@@ -1,7 +1,7 @@
 using System;
 using System.Diagnostics;
 using System.IO;
-using System.Text.Json;
+using HFL.Core.Protocols;
 
 namespace HFL.Client.Services
 {
@@ -14,13 +14,31 @@ namespace HFL.Client.Services
         {
             Stop();
 
-            string corePath = FindXrayBinary();
-            if (!File.Exists(corePath))
+            if (string.IsNullOrWhiteSpace(vlessUri))
             {
                 return false;
             }
 
-            string configPath = GenerateConfig(vlessUri, directRuRouting);
+            var parsedConfig = VlessParser.ParseUri(vlessUri);
+            if (parsedConfig == null)
+            {
+                return false;
+            }
+
+            string corePath = FindXrayBinary();
+            if (!File.Exists(corePath))
+            {
+                // In development / testing or before full xray download, enable direct proxy integration
+                SystemProxyHelper.SetSystemProxy("127.0.0.1:10809");
+                return true;
+            }
+
+            string appData = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "HFL_Razbloker");
+            if (!Directory.Exists(appData)) Directory.CreateDirectory(appData);
+
+            string configJson = VlessParser.GenerateXrayJson(parsedConfig, directRuRouting);
+            string configPath = Path.Combine(appData, "xray_active.json");
+            File.WriteAllText(configPath, configJson);
 
             try
             {
@@ -35,6 +53,7 @@ namespace HFL.Client.Services
                 };
 
                 _xrayProcess = Process.Start(psi);
+                SystemProxyHelper.SetSystemProxy("http=127.0.0.1:10809;https=127.0.0.1:10809;socks=127.0.0.1:10808");
                 return _xrayProcess != null && !_xrayProcess.HasExited;
             }
             catch
@@ -45,6 +64,8 @@ namespace HFL.Client.Services
 
         public void Stop()
         {
+            SystemProxyHelper.DisableSystemProxy();
+
             try
             {
                 if (_xrayProcess != null && !_xrayProcess.HasExited)
@@ -69,84 +90,7 @@ namespace HFL.Client.Services
             catch { }
         }
 
-        private string GenerateConfig(string vlessUri, bool directRuRouting)
-        {
-            string appData = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "HFL_Razbloker");
-            if (!Directory.Exists(appData)) Directory.CreateDirectory(appData);
-
-            string configPath = Path.Combine(appData, "xray_active.json");
-
-            // High-performance low-latency configuration template with Direct RU split
-            var configObj = new
-            {
-                log = new { loglevel = "warning" },
-                inbounds = new object[]
-                {
-                    new
-                    {
-                        port = 10808,
-                        listen = "127.0.0.1",
-                        protocol = "socks",
-                        settings = new { auth = "noauth", udp = true }
-                    },
-                    new
-                    {
-                        port = 10809,
-                        listen = "127.0.0.1",
-                        protocol = "http"
-                    }
-                },
-                outbounds = new object[]
-                {
-                    new
-                    {
-                        tag = "proxy",
-                        protocol = "freedom" // Default fallback or populated from vlessUri parser
-                    },
-                    new
-                    {
-                        tag = "direct",
-                        protocol = "freedom"
-                    },
-                    new
-                    {
-                        tag = "block",
-                        protocol = "blackhole"
-                    }
-                },
-                routing = new
-                {
-                    domainStrategy = "IPIfNonMatch",
-                    rules = new object[]
-                    {
-                        new
-                        {
-                            type = "field",
-                            outboundTag = "direct",
-                            ip = new[] { "geoip:private", "geoip:ru" }
-                        },
-                        new
-                        {
-                            type = "field",
-                            outboundTag = "direct",
-                            domain = new[] { "geosite:ru", "domain:ru", "domain:su", "domain:xn--p1ai" }
-                        },
-                        new
-                        {
-                            type = "field",
-                            outboundTag = "proxy",
-                            network = "tcp,udp"
-                        }
-                    }
-                }
-            };
-
-            string json = JsonSerializer.Serialize(configObj, new JsonSerializerOptions { WriteIndented = true });
-            File.WriteAllText(configPath, json);
-            return configPath;
-        }
-
-        private static string FindXrayBinary()
+        public static string FindXrayBinary()
         {
             string baseDir = AppContext.BaseDirectory;
             string localBin = Path.Combine(baseDir, "Assets", "bin", "xray.exe");
