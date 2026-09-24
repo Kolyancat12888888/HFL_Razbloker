@@ -44,32 +44,27 @@ HFL_Razbloker/
 
 ---
 
-## 🚀 Быстрый старт: Развертывание сервера на VPS
+## 🚀 Быстрый старт: Развертывание сервера на Linux VPS (Без Docker)
 
-### Вариант 1: Через Docker Compose (Рекомендуется)
+Сервер разворачивается на Ubuntu/Debian одной командой:
 
-1. Клонируйте репозиторий на ваш VPS:
-   ```bash
-   git clone https://github.com/Kolyancat12888888/HFL_Razbloker.git
-   cd HFL_Razbloker
-   ```
+```bash
+git clone https://github.com/Kolyancat12888888/HFL_Razbloker.git
+cd HFL_Razbloker
+chmod +x install.sh
+sudo ./install.sh
+```
 
-2. Откройте `docker-compose.yml` и укажите ваш токен бота и Telegram ID:
-   ```yaml
-   environment:
-     - BOT_TOKEN=1234567890:ABCdefGHIjklMNOpqrsTUVwxyz
-     - ADMIN_TELEGRAM_ID=987654321
-   ```
+Скрипт автоматически:
+1. Установит .NET 9 на сервер.
+2. Соберет и развернет сервер в `/opt/hfl-server`.
+3. Создаст и запустит фоновую системную службу `systemd` (`hfl-server.service`).
+4. Автоматически запустит Telegram-бота с твоим токеном и DoH/DNS сервер на порту 5000 и 53!
 
-3. Запустите контейнер:
-   ```bash
-   docker compose up -d --build
-   ```
-
-Сервер запустит:
-- **DoH / API эндпоинт:** `http://YOUR_SERVER_IP:5000/dns-query` (или через Nginx на 443 порту).
-- **DNS UDP 53:** нативно слушает запросы.
-- **Telegram-бот:** готов к генерации ключей и отправке меню.
+### Полезные команды на сервере:
+* **Статус службы:** `systemctl status hfl-server`
+* **Логи в реальном времени:** `journalctl -u hfl-server -f`
+* **Перезапуск:** `systemctl restart hfl-server`
 
 ---
 
