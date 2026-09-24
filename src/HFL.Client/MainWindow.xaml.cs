@@ -97,8 +97,7 @@ namespace HFL.Client
             else
             {
                 var settings = ConfigService.Load();
-                int strategyIndex = StrategyComboBox.SelectedIndex - 1; // -1 for Auto
-                await _optimizer.StartAutonomousAsync(settings, strategyIndex);
+                await _optimizer.StartAutonomousAsync(settings);
             }
         }
 
@@ -111,12 +110,8 @@ namespace HFL.Client
                     PowerButtonText.Text = "ОТКЛЮЧИТЬ";
                     PowerButtonText.Foreground = new SolidColorBrush(Color.FromRgb(248, 113, 113));
                     PowerIcon.Text = "🛡️";
-                    ConnectionStatusText.Text = "🟢 Защита активна (DPI Bypass)";
+                    ConnectionStatusText.Text = "🟢 HFL DNS Перехват Активен";
                     ConnectionStatusText.Foreground = new SolidColorBrush(Color.FromRgb(52, 211, 153));
-                    YoutubeStatusText.Text = "🟢 Доступен (4K)";
-                    YoutubeStatusText.Foreground = new SolidColorBrush(Color.FromRgb(52, 211, 153));
-                    DiscordStatusText.Text = "🟢 Доступен";
-                    DiscordStatusText.Foreground = new SolidColorBrush(Color.FromRgb(52, 211, 153));
                 }
                 else
                 {
@@ -125,10 +120,6 @@ namespace HFL.Client
                     PowerIcon.Text = "⚡";
                     ConnectionStatusText.Text = "Отключено";
                     ConnectionStatusText.Foreground = new SolidColorBrush(Color.FromRgb(148, 163, 184));
-                    YoutubeStatusText.Text = "⚪ Не проверено";
-                    YoutubeStatusText.Foreground = new SolidColorBrush(Color.FromRgb(148, 163, 184));
-                    DiscordStatusText.Text = "⚪ Не проверено";
-                    DiscordStatusText.Foreground = new SolidColorBrush(Color.FromRgb(148, 163, 184));
                 }
             });
         }
