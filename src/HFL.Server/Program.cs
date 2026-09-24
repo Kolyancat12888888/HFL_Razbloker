@@ -71,24 +71,24 @@ app.MapGet("/", (HttpContext context) =>
     string host = context.Request.Host.Host;
     if (host.EndsWith(".local") || host.EndsWith(".internal"))
     {
-        return Results.Content($"""
+        return Results.Content($$"""
         <!DOCTYPE html>
         <html lang="ru">
         <head>
             <meta charset="UTF-8">
-            <title>{host} — HFL DNS Test</title>
+            <title>{{host}} — HFL DNS Test</title>
             <style>
-                body {{ background: #0B0F19; color: #F8FAFC; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; display: flex; align-items: center; justify-content: center; height: 100vh; margin: 0; }}
-                .card {{ background: #131D2F; border: 1px solid #1E293B; border-radius: 12px; padding: 36px; text-align: center; max-width: 500px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }}
-                h1 {{ color: #38BDF8; margin-top: 0; font-size: 24px; }}
-                p {{ color: #94A3B8; font-size: 14px; line-height: 1.6; }}
-                .badge {{ background: #059669; color: white; padding: 6px 12px; border-radius: 20px; font-weight: bold; font-size: 12px; display: inline-block; margin-bottom: 16px; }}
+                body { background: #0B0F19; color: #F8FAFC; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; display: flex; align-items: center; justify-content: center; height: 100vh; margin: 0; }
+                .card { background: #131D2F; border: 1px solid #1E293B; border-radius: 12px; padding: 36px; text-align: center; max-width: 500px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
+                h1 { color: #38BDF8; margin-top: 0; font-size: 24px; }
+                p { color: #94A3B8; font-size: 14px; line-height: 1.6; }
+                .badge { background: #059669; color: white; padding: 6px 12px; border-radius: 20px; font-weight: bold; font-size: 12px; display: inline-block; margin-bottom: 16px; }
             </style>
         </head>
         <body>
             <div class="card">
                 <div class="badge">🟢 HFL DNS РАБОТАЕТ</div>
-                <h1>🎉 Домен {host} успешно открыт!</h1>
+                <h1>🎉 Домен {{host}} успешно открыт!</h1>
                 <p>Запрос был прозрачно перехвачен клиентом <b>HFL Razbloker</b> и отрезолвлен на локальный сервер без изменения сетевых настроек Windows.</p>
             </div>
         </body>
