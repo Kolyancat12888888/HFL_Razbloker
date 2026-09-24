@@ -1,0 +1,19 @@
+version: '3.8'
+
+services:
+  hfl-server:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: hfl_server
+    restart: always
+    ports:
+      - "5000:80"        # API & DoH (/dns-query)
+      - "53:53/udp"      # Native UDP DNS
+      - "53:53/tcp"      # Native TCP DNS
+    environment:
+      - BOT_TOKEN=YOUR_TELEGRAM_BOT_TOKEN
+      - ADMIN_TELEGRAM_ID=YOUR_TELEGRAM_ID
+      - ASPNETCORE_ENVIRONMENT=Production
+    volumes:
+      - ./data:/app/data

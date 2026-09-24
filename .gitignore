@@ -1,0 +1,30 @@
+# .NET Build artifacts
+bin/
+obj/
+publish/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+# Python artifacts
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.venv/
+venv/
+env/
+.pytest_cache/
+
+# Sensitive & Local files
+.env
+data/
+*.db
+*.sqlite3
+*.log
+
+# Visual Studio / Rider
+.vs/
+.idea/
+.vscode/
