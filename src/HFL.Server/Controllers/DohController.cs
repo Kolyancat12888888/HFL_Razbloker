@@ -1,5 +1,6 @@
 using System;
 using System.IO;
+using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
 using HFL.Server.Services.Dns;
@@ -17,6 +18,17 @@ namespace HFL.Server.Controllers
             _resolver = resolver;
         }
 
+        private (string? key, string clientIp) GetClientAuth()
+        {
+            string? key = Request.Query["key"].FirstOrDefault() 
+                          ?? Request.Headers["X-License-Key"].FirstOrDefault();
+            
+            string clientIp = Request.Headers["X-Forwarded-For"].FirstOrDefault() 
+                              ?? HttpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown";
+
+            return (key, clientIp);
+        }
+
         [HttpPost]
         [Consumes("application/dns-message")]
         [Produces("application/dns-message")]
@@ -29,7 +41,8 @@ namespace HFL.Server.Controllers
             if (queryBytes.Length == 0)
                 return BadRequest();
 
-            byte[] responseBytes = await _resolver.ProcessDnsQueryAsync(queryBytes);
+            var (key, clientIp) = GetClientAuth();
+            byte[] responseBytes = await _resolver.ProcessDnsQueryAsync(queryBytes, key, clientIp);
             return File(responseBytes, "application/dns-message");
         }
 
@@ -51,7 +64,8 @@ namespace HFL.Server.Controllers
                 }
 
                 byte[] queryBytes = Convert.FromBase64String(base64);
-                byte[] responseBytes = await _resolver.ProcessDnsQueryAsync(queryBytes);
+                var (key, clientIp) = GetClientAuth();
+                byte[] responseBytes = await _resolver.ProcessDnsQueryAsync(queryBytes, key, clientIp);
                 return File(responseBytes, "application/dns-message");
             }
             catch

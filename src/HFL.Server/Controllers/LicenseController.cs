@@ -26,6 +26,9 @@ namespace HFL.Server.Controllers
                 return BadRequest(new ValidateResponse { Valid = false, Status = "invalid_payload", Message = "Ключ и HWID обязательны" });
             }
 
+            string clientIp = HttpContext.Request.Headers["X-Forwarded-For"].FirstOrDefault() 
+                              ?? HttpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown";
+
             var lic = await _db.Licenses.FirstOrDefaultAsync(l => l.Key == req.Key.Trim());
             if (lic == null)
             {
@@ -34,7 +37,10 @@ namespace HFL.Server.Controllers
 
             if (!lic.IsActive)
             {
-                return Ok(new ValidateResponse { Valid = false, Status = "revoked", Message = "Ключ заблокирован администратором" });
+                lic.LastSeenIp = clientIp;
+                lic.LastSeenAt = DateTime.UtcNow;
+                await _db.SaveChangesAsync();
+                return Ok(new ValidateResponse { Valid = false, Status = "revoked", Message = "Доступ заблокирован администратором панели" });
             }
 
             var now = DateTime.UtcNow;
@@ -79,6 +85,7 @@ namespace HFL.Server.Controllers
             }
 
             lic.LastSeenAt = now;
+            lic.LastSeenIp = clientIp;
             if (!string.IsNullOrEmpty(req.AppVersion))
             {
                 lic.AppVersion = req.AppVersion;
@@ -103,7 +110,7 @@ namespace HFL.Server.Controllers
                 DaysLeft = daysLeft,
                 ServerConfig = new ClientServerConfig
                 {
-                    DohUrl = $"{Request.Scheme}://{Request.Host}/dns-query",
+                    DohUrl = $"{Request.Scheme}://{Request.Host}/dns-query?key={lic.Key}",
                     VlessUri = settings.XuiVlessUri,
                     ZapretStrategies = new[]
                     {
@@ -118,11 +125,21 @@ namespace HFL.Server.Controllers
         [HttpPost("ping")]
         public async Task<IActionResult> Ping([FromBody] ValidateRequest req)
         {
-            var lic = await _db.Licenses.FirstOrDefaultAsync(l => l.Key == req.Key.Trim() && l.Hwid == req.Hwid);
-            if (lic != null && lic.IsActive)
+            string clientIp = HttpContext.Request.Headers["X-Forwarded-For"].FirstOrDefault() 
+                              ?? HttpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown";
+
+            var lic = await _db.Licenses.FirstOrDefaultAsync(l => l.Key == req.Key.Trim());
+            if (lic != null)
             {
                 lic.LastSeenAt = DateTime.UtcNow;
+                lic.LastSeenIp = clientIp;
                 await _db.SaveChangesAsync();
+
+                if (!lic.IsActive)
+                {
+                    return Ok(new { status = "revoked", valid = false, message = "Доступ заблокирован администратором панели" });
+                }
+
                 return Ok(new { status = "ok", valid = true });
             }
             return Ok(new { status = "invalid", valid = false });

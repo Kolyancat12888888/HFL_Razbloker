@@ -76,6 +76,10 @@
             <div :class="['nav-item', currentTab === 'dashboard' ? 'active-nav' : '']" @click="currentTab = 'dashboard'">
               <span>📊 Дашборд</span>
             </div>
+            <div :class="['nav-item', currentTab === 'licenses' ? 'active-nav' : '']" @click="currentTab = 'licenses'; loadLicenses();">
+              <span>🔑 Лицензии & Клиенты</span>
+              <span class="ml-auto px-1.5 py-0.5 text-[10px] font-mono bg-emerald-500/20 text-emerald-300 rounded">{{ licenses.length }}</span>
+            </div>
             <div :class="['nav-item', currentTab === 'sites' ? 'active-nav' : '']" @click="currentTab = 'sites'">
               <span>🌐 Сайты и Nginx</span>
               <span class="ml-auto px-1.5 py-0.5 text-[10px] font-mono bg-sky-500/20 text-sky-300 rounded">{{ sites.length }}</span>
@@ -123,7 +127,7 @@
           <div class="text-sm font-mono text-cyan-400 font-bold">hfl-control-panel.internal</div>
           <div class="flex items-center gap-3">
             <div class="px-3 py-1 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-mono">
-              DNS :53 ACTIVE
+              DNS :53 & AUTH ACTIVE
             </div>
           </div>
         </header>
@@ -148,45 +152,121 @@
               <div class="glass-card p-5">
                 <span class="text-xs font-mono uppercase text-slate-400">Оперативная память</span>
                 <div class="text-3xl font-bold font-mono text-indigo-400 mt-2">{{ stats.ramUsage }}%</div>
-                <div class="text-xs text-slate-500 font-mono mt-1">{{ stats.ramUsed }} / {{ stats.ramTotal }}</div>
+                <div class="text-[10px] text-slate-500 font-mono mt-1">{{ stats.ramUsed }} / {{ stats.ramTotal }}</div>
+                <div class="w-full bg-slate-800 h-1.5 rounded-full mt-2 overflow-hidden">
+                  <div class="bg-indigo-400 h-1.5 rounded-full" :style="{ width: stats.ramUsage + '%' }"></div>
+                </div>
               </div>
 
               <div class="glass-card p-5">
-                <span class="text-xs font-mono uppercase text-slate-400">NVMe Диск</span>
+                <span class="text-xs font-mono uppercase text-slate-400">Дисковый накопитель</span>
                 <div class="text-3xl font-bold font-mono text-emerald-400 mt-2">{{ stats.diskUsage }}%</div>
-                <div class="text-xs text-slate-500 font-mono mt-1">{{ stats.diskUsed }} / {{ stats.diskTotal }}</div>
+                <div class="text-[10px] text-slate-500 font-mono mt-1">{{ stats.diskUsed }} / {{ stats.diskTotal }}</div>
+                <div class="w-full bg-slate-800 h-1.5 rounded-full mt-2 overflow-hidden">
+                  <div class="bg-emerald-400 h-1.5 rounded-full" :style="{ width: stats.diskUsage + '%' }"></div>
+                </div>
               </div>
 
               <div class="glass-card p-5">
-                <span class="text-xs font-mono uppercase text-slate-400">Сайты & DNS</span>
-                <div class="text-3xl font-bold font-mono text-purple-400 mt-2">{{ sites.length }}</div>
-                <div class="text-xs text-slate-500 font-mono mt-1">Uptime: {{ stats.uptime }}</div>
+                <span class="text-xs font-mono uppercase text-slate-400">Аптайм сервера</span>
+                <div class="text-lg font-bold font-mono text-amber-400 mt-2">{{ stats.uptime }}</div>
+                <div class="text-[10px] text-slate-500 font-mono mt-1">Linux Ubuntu 22.04 LTS</div>
               </div>
             </div>
 
-            <!-- Services List -->
+            <!-- Services Status -->
             <div class="glass-card p-6">
-              <h2 class="text-base font-bold text-white mb-4">Системные службы сервера</h2>
-              <div class="space-y-3">
-                <div v-for="s in services" :key="s.name" class="flex items-center justify-between p-3.5 rounded-xl bg-slate-900 border border-slate-800">
-                  <div class="flex items-center gap-3">
-                    <span class="w-2.5 h-2.5 rounded-full bg-emerald-400"></span>
-                    <div>
-                      <div class="text-sm font-bold text-slate-200">{{ s.name }}</div>
-                      <div class="text-xs text-slate-500">{{ s.description }}</div>
-                    </div>
+              <h2 class="text-lg font-bold text-white mb-4">Системные службы Linux</h2>
+              <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div v-for="srv in services" :key="srv.name" class="p-4 rounded-xl bg-slate-900/60 border border-slate-800 flex items-center justify-between">
+                  <div>
+                    <div class="font-bold text-sm text-slate-200">{{ srv.title || srv.name }}</div>
+                    <div class="text-[10px] font-mono text-slate-500 mt-0.5">{{ srv.port || 'Active' }}</div>
                   </div>
-                  <span class="px-2 py-0.5 rounded text-xs font-mono bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">Running</span>
+                  <div class="flex items-center gap-2">
+                    <span :class="['w-2.5 h-2.5 rounded-full', srv.is_active ? 'bg-emerald-400 shadow-lg shadow-emerald-500/50' : 'bg-rose-500']"></span>
+                    <button @click="restartService(srv.name)" class="text-[10px] font-mono px-2 py-1 rounded bg-slate-800 hover:bg-slate-700 text-cyan-400">Перезапуск</button>
+                  </div>
                 </div>
               </div>
+            </div>
+          </div>
+
+          <!-- LICENSES & CLIENT ACCESS CONTROL TAB -->
+          <div v-if="currentTab === 'licenses'" class="space-y-6">
+            <div class="flex items-center justify-between">
+              <div>
+                <h1 class="text-2xl font-extrabold text-white">🔑 Управление доступом клиентов и лицензиями</h1>
+                <p class="text-xs text-slate-400 mt-1">Мгновенная блокировка пользователей и управление DNS доступом</p>
+              </div>
+              <button @click="createLicensePrompt" class="px-4 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-xs shadow-lg shadow-emerald-500/20 transition transform active:scale-95">
+                + Создать лицензионный ключ
+              </button>
+            </div>
+
+            <div class="glass-card overflow-hidden">
+              <table class="w-full text-left text-xs font-mono">
+                <thead class="bg-slate-900 text-slate-400 text-[10px] border-b border-slate-800">
+                  <tr>
+                    <th class="p-4">Лицензионный ключ</th>
+                    <th class="p-4">Привязка (HWID)</th>
+                    <th class="p-4">IP Клиента</th>
+                    <th class="p-4">Срок / Истекает</th>
+                    <th class="p-4">Последний онлайн</th>
+                    <th class="p-4">Статус доступа</th>
+                    <th class="p-4 text-right">Действия</th>
+                  </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-800">
+                  <tr v-for="lic in licenses" :key="lic.id" :class="['hover:bg-slate-900/40', !lic.is_active ? 'bg-rose-950/20' : '']">
+                    <td class="p-4">
+                      <div class="font-bold text-cyan-400 flex items-center gap-2">
+                        <span>{{ lic.key }}</span>
+                        <button @click="copyText(lic.key)" class="text-[10px] text-slate-500 hover:text-white" title="Скопировать">📋</button>
+                      </div>
+                      <div v-if="lic.note" class="text-[10px] text-slate-500">{{ lic.note }}</div>
+                    </td>
+                    <td class="p-4">
+                      <span :class="lic.hwid !== 'Не привязан' ? 'text-slate-300' : 'text-slate-600'">
+                        {{ lic.hwid !== 'Не привязан' ? lic.hwid.substring(0, 16) + '...' : 'Не привязан' }}
+                      </span>
+                      <button v-if="lic.hwid !== 'Не привязан'" @click="resetHwid(lic)" class="ml-2 text-[10px] text-amber-400 hover:underline" title="Сбросить привязку к ПК">[Сброс ПК]</button>
+                    </td>
+                    <td class="p-4 text-slate-300">{{ lic.ip }}</td>
+                    <td class="p-4 text-emerald-400">{{ lic.expires_at }}</td>
+                    <td class="p-4 text-slate-400">{{ lic.last_seen }}</td>
+                    <td class="p-4">
+                      <span v-if="lic.is_active" class="px-2.5 py-1 rounded-full text-[10px] font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/30">
+                        🟢 РАЗРЕШЕН
+                      </span>
+                      <span v-else class="px-2.5 py-1 rounded-full text-[10px] font-bold bg-rose-500/10 text-rose-400 border border-rose-500/30">
+                        🔴 ЗАБЛОКИРОВАН
+                      </span>
+                    </td>
+                    <td class="p-4 text-right space-x-2">
+                      <!-- Instant Block / Unblock Toggle Button -->
+                      <button v-if="lic.is_active" @click="toggleLicense(lic)" class="px-2.5 py-1 rounded bg-rose-500/20 text-rose-300 hover:bg-rose-500 hover:text-white font-bold transition">
+                        ⛔ Отключить доступ
+                      </button>
+                      <button v-else @click="toggleLicense(lic)" class="px-2.5 py-1 rounded bg-emerald-500/20 text-emerald-300 hover:bg-emerald-500 hover:text-slate-950 font-bold transition">
+                        ✓ Включить доступ
+                      </button>
+                      <button @click="deleteLicense(lic)" class="text-slate-500 hover:text-rose-400">✕</button>
+                    </td>
+                  </tr>
+                  <tr v-if="licenses.length === 0">
+                    <td colspan="7" class="p-6 text-center text-slate-500">Лицензии отсутствуют. Нажмите кнопку выше для создания нового ключа.</td>
+                  </tr>
+                </tbody>
+              </table>
             </div>
           </div>
 
           <!-- Sites Tab -->
           <div v-if="currentTab === 'sites'" class="space-y-6">
             <div class="flex items-center justify-between">
-              <h1 class="text-2xl font-extrabold text-white">Сайты и Виртуальные хосты</h1>
-              <button @click="createSitePrompt" class="px-4 py-2 rounded-xl bg-cyan-500 text-slate-950 font-bold text-xs shadow-lg shadow-cyan-500/20">+ Создать сайт</button>
+              <h1 class="text-2xl font-extrabold text-white">Виртуальные хосты Nginx</h1>
+              <button @click="addSitePrompt" class="px-4 py-2 rounded-xl bg-cyan-500 text-slate-950 font-bold text-xs shadow-lg shadow-cyan-500/20">+ Добавить сайт</button>
             </div>
 
             <div class="glass-card overflow-hidden">
@@ -194,9 +274,9 @@
                 <thead class="bg-slate-900 text-slate-400 text-[10px] border-b border-slate-800">
                   <tr>
                     <th class="p-4">Домен</th>
-                    <th class="p-4">Окружение</th>
-                    <th class="p-4">Папка</th>
-                    <th class="p-4">SSL</th>
+                    <th class="p-4">Стек</th>
+                    <th class="p-4">Корневая папка</th>
+                    <th class="p-4">SSL Сертификат</th>
                     <th class="p-4">Статус</th>
                   </tr>
                 </thead>
@@ -232,11 +312,11 @@
                   </tr>
                 </thead>
                 <tbody class="divide-y divide-slate-800">
-                  <tr v-for="d in dnsRecords" :key="d.Domain" class="hover:bg-slate-900/40">
-                    <td class="p-4 font-bold text-purple-400">{{ d.Domain }}</td>
-                    <td class="p-4 text-cyan-400">A</td>
-                    <td class="p-4 text-slate-200">{{ d.IpAddress }}</td>
-                    <td class="p-4 text-slate-400">{{ d.Note }}</td>
+                  <tr v-for="d in dnsRecords" :key="d.id || d.Domain" class="hover:bg-slate-900/40">
+                    <td class="p-4 font-bold text-purple-400">{{ d.domain || d.Domain }}</td>
+                    <td class="p-4 text-cyan-400">{{ d.recordType || 'A' }}</td>
+                    <td class="p-4 text-slate-200">{{ d.ipAddress || d.IpAddress }}</td>
+                    <td class="p-4 text-slate-400">{{ d.note || d.Note }}</td>
                     <td class="p-4"><span class="px-2 py-0.5 rounded text-[10px] bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">АКТИВНО</span></td>
                   </tr>
                 </tbody>
@@ -292,16 +372,16 @@
                   </tr>
                   <tr v-for="item in fileItems" :key="item.name" class="hover:bg-slate-900/40">
                     <td class="p-4 flex items-center gap-3">
-                      <span>{{ item.isDir ? '📁' : '📄' }}</span>
+                      <span>{{ item.is_dir ? '📁' : '📄' }}</span>
                       <button @click="openFileItem(item)" class="text-slate-200 hover:text-cyan-400 font-bold text-left">
                         {{ item.name }}
                       </button>
                     </td>
-                    <td class="p-4 text-slate-400">{{ item.size }}</td>
+                    <td class="p-4 text-slate-400">{{ item.size_formatted || item.size }}</td>
                     <td class="p-4 text-slate-500">{{ item.permissions }}</td>
                     <td class="p-4 text-slate-500">{{ item.modified }}</td>
                     <td class="p-4 text-right space-x-2">
-                      <a v-if="!item.isDir" :href="'/api/files/download?path=' + encodeURIComponent(item.path)" class="text-cyan-400 hover:underline">Скачать</a>
+                      <a v-if="!item.is_dir" :href="'/api/files/download?path=' + encodeURIComponent(item.path)" class="text-cyan-400 hover:underline">Скачать</a>
                       <button @click="deleteFileItem(item)" class="text-rose-400 hover:underline">Удалить</button>
                     </td>
                   </tr>
@@ -373,18 +453,13 @@
     createApp({
       setup() {
         const currentUser = ref(null);
-        const loginForm = ref({ username: 'root', password: 'password' });
+        const loginForm = ref({ username: 'root', password: 'root' });
         const loginError = ref('');
         const currentTab = ref('dashboard');
 
         const stats = ref({ cpuUsage: 12, ramUsage: 36, ramTotal: '16 GB', ramUsed: '5.8 GB', diskUsage: 24, diskTotal: '240 GB', diskUsed: '57.6 GB', uptime: '14 дней' });
-        const services = ref([
-          { name: 'nginx', description: 'Nginx High Performance Web Server' },
-          { name: 'hfl-server', description: 'HFL Native DNS & DoH Resolver' },
-          { name: 'php8.3-fpm', description: 'PHP-FPM FastCGI Process Manager' },
-          { name: 'mysql', description: 'MySQL / MariaDB Database Server' }
-        ]);
-
+        const services = ref([]);
+        const licenses = ref([]);
         const sites = ref([]);
         const dnsRecords = ref([]);
         const userList = ref([]);
@@ -404,18 +479,16 @@
           })
           .then(r => r.json())
           .then(data => {
-            if (data.success) {
+            if (data.token) {
               currentUser.value = data.user;
               localStorage.setItem('hfl_token', data.token);
               localStorage.setItem('hfl_user', JSON.stringify(data.user));
-              loadSites();
-              loadDns();
+              loadAllData();
             } else {
               loginError.value = data.error || 'Ошибка входа';
             }
           })
           .catch(() => {
-            // Fallback root auth if server API is launching
             currentUser.value = { username: loginForm.value.username, role: 'SuperAdmin' };
           });
         };
@@ -426,23 +499,93 @@
           localStorage.removeItem('hfl_user');
         };
 
+        const loadStats = () => {
+          fetch('/api/system/stats')
+            .then(r => r.json())
+            .then(data => { stats.value = data; })
+            .catch(() => {});
+        };
+
+        const loadServices = () => {
+          fetch('/api/system/services')
+            .then(r => r.json())
+            .then(data => { services.value = data; })
+            .catch(() => {});
+        };
+
+        const restartService = (name) => {
+          fetch('/api/system/service/restart', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ name })
+          })
+          .then(r => r.json())
+          .then(() => {
+            alert('Служба ' + name + ' перезапускается...');
+            loadServices();
+          });
+        };
+
+        const loadLicenses = () => {
+          fetch('/api/licenses')
+            .then(r => r.json())
+            .then(data => { licenses.value = data; })
+            .catch(() => {});
+        };
+
+        const toggleLicense = (lic) => {
+          fetch('/api/licenses/' + lic.id + '/toggle', { method: 'POST' })
+            .then(r => r.json())
+            .then(() => loadLicenses());
+        };
+
+        const resetHwid = (lic) => {
+          if (confirm('Сбросить привязку к ПК для ключа ' + lic.key + '?')) {
+            fetch('/api/licenses/' + lic.id + '/reset-hwid', { method: 'POST' })
+              .then(r => r.json())
+              .then(() => loadLicenses());
+          }
+        };
+
+        const createLicensePrompt = () => {
+          const days = prompt('Срок действия ключа (в днях, или -1 для бессрочного):', '-1');
+          const note = prompt('Примечание (имя клиента / контакт):', 'Клиент');
+          if (days !== null) {
+            fetch('/api/licenses', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ durationDays: parseInt(days) || -1, note })
+            })
+            .then(r => r.json())
+            .then(() => loadLicenses());
+          }
+        };
+
+        const deleteLicense = (lic) => {
+          if (confirm('Удалить лицензию ' + lic.key + '?')) {
+            fetch('/api/licenses/' + lic.id, { method: 'DELETE' })
+              .then(r => r.json())
+              .then(() => loadLicenses());
+          }
+        };
+
+        const copyText = (text) => {
+          navigator.clipboard.writeText(text);
+          alert('Скопировано в буфер: ' + text);
+        };
+
         const loadFiles = (path) => {
-          fetch('/api/files/list?path=' + encodeURIComponent(path))
+          currentFilePath.value = path || '';
+          fetch('/api/files/browse?path=' + encodeURIComponent(currentFilePath.value))
             .then(r => r.json())
             .then(data => {
-              currentFilePath.value = data.currentPath || '';
               fileItems.value = data.items || [];
             })
-            .catch(() => {
-              fileItems.value = [
-                { name: 'hfl-panel', isDir: true, size: '-', permissions: '0755', modified: '2026-09-24', path: 'hfl-panel' },
-                { name: 'hfl-local', isDir: true, size: '-', permissions: '0755', modified: '2026-09-24', path: 'hfl-local' }
-              ];
-            });
+            .catch(() => {});
         };
 
         const openFileItem = (item) => {
-          if (item.isDir) {
+          if (item.is_dir) {
             loadFiles(item.path);
           } else {
             fetch('/api/files/read?path=' + encodeURIComponent(item.path))
@@ -522,12 +665,7 @@
           fetch('/api/auth/users')
             .then(r => r.json())
             .then(data => { userList.value = data; })
-            .catch(() => {
-              userList.value = [
-                { id: 1, username: 'root', role: 'SuperAdmin', quota: { disk: 'Unlimited', sites: 'All' }, created_at: '2026-09-24' },
-                { id: 2, username: 'client_demo', role: 'Client', quota: { disk: '10GB', sites: 5 }, created_at: '2026-09-24' }
-              ];
-            });
+            .catch(() => {});
         };
 
         const addUserPrompt = () => {
@@ -552,26 +690,56 @@
           fetch('/api/sites')
             .then(r => r.json())
             .then(data => { sites.value = data; })
-            .catch(() => {
-              sites.value = [
-                { domain: 'hfl-control-panel.internal', envType: 'Vue/HTML', phpVersion: 'SPA', docRoot: '/var/www/hfl-panel', sslType: 'HFL SAN SSL' },
-                { domain: 'test.local', envType: 'PHP', phpVersion: '8.3', docRoot: '/var/www/hfl-local', sslType: 'HFL SAN SSL' },
-                { domain: 'cs2.hfl-nodes.pro', envType: 'PHP', phpVersion: '8.2', docRoot: '/var/www/cs2panel', sslType: 'Let\'s Encrypt' }
-              ];
+            .catch(() => {});
+        };
+
+        const addSitePrompt = () => {
+          const domain = prompt('Домен нового сайта (например blog.local или site.internal):');
+          if (domain) {
+            fetch('/api/sites', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ domain })
+            })
+            .then(r => r.json())
+            .then(() => {
+              alert('Сайт ' + domain + ' создан!');
+              loadSites();
             });
+          }
         };
 
         const loadDns = () => {
           fetch('/api/dns/records')
             .then(r => r.json())
             .then(data => { dnsRecords.value = data; })
-            .catch(() => {
-              dnsRecords.value = [
-                { Domain: 'hfl-control-panel.internal', IpAddress: '31.77.8.9', Note: 'HFL WebPanel' },
-                { Domain: '*.internal', IpAddress: '31.77.8.9', Note: 'Wildcard' },
-                { Domain: '*.local', IpAddress: '31.77.8.9', Note: 'Wildcard' }
-              ];
+            .catch(() => {});
+        };
+
+        const addDnsPrompt = () => {
+          const domain = prompt('Домен (например test.local или *.local):');
+          const ip = prompt('IP адрес:', '31.77.8.9');
+          const note = prompt('Примечание:', 'Manual DNS');
+          if (domain && ip) {
+            fetch('/api/dns/records', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ domain, ipAddress: ip, note })
+            })
+            .then(r => r.json())
+            .then(() => {
+              alert('DNS запись добавлена!');
+              loadDns();
             });
+          }
+        };
+
+        const loadAllData = () => {
+          loadStats();
+          loadServices();
+          loadLicenses();
+          loadSites();
+          loadDns();
         };
 
         onMounted(() => {
@@ -581,8 +749,8 @@
           } else {
             currentUser.value = { username: 'root', role: 'SuperAdmin' };
           }
-          loadSites();
-          loadDns();
+          loadAllData();
+          setInterval(loadStats, 4000);
         });
 
         return {
@@ -592,6 +760,7 @@
           currentTab,
           stats,
           services,
+          licenses,
           sites,
           dnsRecords,
           userList,
@@ -601,6 +770,13 @@
           fileEditorContent,
           handleLogin,
           handleLogout,
+          restartService,
+          loadLicenses,
+          toggleLicense,
+          resetHwid,
+          createLicensePrompt,
+          deleteLicense,
+          copyText,
           loadFiles,
           openFileItem,
           saveFileContent,
@@ -609,7 +785,11 @@
           goUpFolder,
           createNewFolder,
           loadUsers,
-          addUserPrompt
+          addUserPrompt,
+          loadSites,
+          addSitePrompt,
+          loadDns,
+          addDnsPrompt
         };
       }
     }).mount('#app');

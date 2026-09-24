@@ -11,6 +11,7 @@ using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using HFL.Core.Models;
 using HFL.Server.Data;
 
 namespace HFL.Server.Services.Dns
@@ -28,7 +29,7 @@ namespace HFL.Server.Services.Dns
             _httpClient = new HttpClient { Timeout = TimeSpan.FromSeconds(4) };
         }
 
-        public async Task<byte[]> ProcessDnsQueryAsync(byte[] queryBuffer)
+        public async Task<byte[]> ProcessDnsQueryAsync(byte[] queryBuffer, string? licenseKey = null, string? clientIp = null)
         {
             if (queryBuffer == null || queryBuffer.Length < 12)
                 return Array.Empty<byte>();
@@ -37,11 +38,25 @@ namespace HFL.Server.Services.Dns
             string queriedDomain = ExtractDomainName(queryBuffer, 12, out int questionEndOffset, out ushort qtype);
             queriedDomain = queriedDomain.TrimEnd('.').ToLowerInvariant();
 
+            using var scope = _serviceProvider.CreateScope();
+            var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+
+            // Check License authorization if key or IP is provided
+            if (!string.IsNullOrEmpty(licenseKey) || !string.IsNullOrEmpty(clientIp))
+            {
+                var lic = await db.Licenses.FirstOrDefaultAsync(l => 
+                    (!string.IsNullOrEmpty(licenseKey) && l.Key == licenseKey.Trim()) ||
+                    (!string.IsNullOrEmpty(clientIp) && l.LastSeenIp == clientIp && l.LastSeenIp != "127.0.0.1" && l.LastSeenIp != "unknown"));
+
+                if (lic != null && !lic.IsActive)
+                {
+                    // Blocked client: return Refused or 0.0.0.0
+                    return BuildResponsePacket(queryBuffer, questionEndOffset, qtype, IPAddress.Parse("0.0.0.0"), 5);
+                }
+            }
+
             if (!string.IsNullOrEmpty(queriedDomain))
             {
-                using var scope = _serviceProvider.CreateScope();
-                var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-
                 var settings = await db.Settings.FirstOrDefaultAsync() ?? new ServerConfigEntity();
                 var records = await db.DnsRecords.Where(r => r.IsEnabled).ToListAsync();
 

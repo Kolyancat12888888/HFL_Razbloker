@@ -39,12 +39,13 @@ namespace HFL.Server.Services.Dns
                     byte[] queryBytes = new byte[res.ReceivedBytes];
                     Array.Copy(buffer, 0, queryBytes, 0, res.ReceivedBytes);
                     var clientEp = res.RemoteEndPoint;
+                    string clientIp = (clientEp as IPEndPoint)?.Address.ToString() ?? "";
 
                     _ = Task.Run(async () =>
                     {
                         try
                         {
-                            byte[] responseBytes = await _resolver.ProcessDnsQueryAsync(queryBytes);
+                            byte[] responseBytes = await _resolver.ProcessDnsQueryAsync(queryBytes, null, clientIp);
                             if (responseBytes.Length > 0 && _socket != null)
                             {
                                 await _socket.SendToAsync(responseBytes, SocketFlags.None, clientEp, stoppingToken);
