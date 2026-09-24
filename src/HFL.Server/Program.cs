@@ -39,24 +39,40 @@ using (var scope = app.Services.CreateScope())
     var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
     db.Database.EnsureCreated();
 
-    if (!db.Settings.Any())
+    var setting = db.Settings.FirstOrDefault();
+    if (setting == null)
     {
-        db.Settings.Add(new ServerConfigEntity
+        setting = new ServerConfigEntity
         {
             Id = 1,
             DohUpstream = "https://1.1.1.1/dns-query",
-            ServerPublicIp = "127.0.0.1",
+            ServerPublicIp = "31.77.8.9",
             XuiVlessUri = "",
-            AdminTelegramId = Environment.GetEnvironmentVariable("ADMIN_TELEGRAM_ID") ?? ""
-        });
+            AdminTelegramId = "6014501462"
+        };
+        db.Settings.Add(setting);
+    }
+    else
+    {
+        setting.ServerPublicIp = "31.77.8.9";
+        setting.AdminTelegramId = "6014501462";
     }
 
-    // Pre-seed default internal test domains
-    if (!db.DnsRecords.Any())
+    // Pre-seed or update default internal domains to point to server IP 31.77.8.9
+    var existingTest = db.DnsRecords.FirstOrDefault(r => r.Domain == "test.local");
+    if (existingTest == null)
     {
-        db.DnsRecords.Add(new DnsRecord { Domain = "*.local", IpAddress = "127.0.0.1", IsEnabled = true, Note = "Default .local wildcard" });
-        db.DnsRecords.Add(new DnsRecord { Domain = "*.internal", IpAddress = "127.0.0.1", IsEnabled = true, Note = "Default .internal wildcard" });
-        db.DnsRecords.Add(new DnsRecord { Domain = "test.local", IpAddress = "127.0.0.1", IsEnabled = true, Note = "Test local domain" });
+        db.DnsRecords.Add(new DnsRecord { Domain = "*.local", IpAddress = "31.77.8.9", IsEnabled = true, Note = "Default .local wildcard" });
+        db.DnsRecords.Add(new DnsRecord { Domain = "*.internal", IpAddress = "31.77.8.9", IsEnabled = true, Note = "Default .internal wildcard" });
+        db.DnsRecords.Add(new DnsRecord { Domain = "test.local", IpAddress = "31.77.8.9", IsEnabled = true, Note = "Test local domain" });
+    }
+    else
+    {
+        existingTest.IpAddress = "31.77.8.9";
+        var localWild = db.DnsRecords.FirstOrDefault(r => r.Domain == "*.local");
+        if (localWild != null) localWild.IpAddress = "31.77.8.9";
+        var internalWild = db.DnsRecords.FirstOrDefault(r => r.Domain == "*.internal");
+        if (internalWild != null) internalWild.IpAddress = "31.77.8.9";
     }
 
     db.SaveChanges();
@@ -89,7 +105,7 @@ app.MapGet("/", (HttpContext context) =>
             <div class="card">
                 <div class="badge">🟢 HFL DNS РАБОТАЕТ</div>
                 <h1>🎉 Домен {{host}} успешно открыт!</h1>
-                <p>Запрос был прозрачно перехвачен клиентом <b>HFL Razbloker</b> и отрезолвлен на локальный сервер без изменения сетевых настроек Windows.</p>
+                <p>Запрос был прозрачно перехвачен клиентом <b>HFL Razbloker</b> и отрезолвлен на сервер <b>31.77.8.9</b> без изменения сетевых настроек Windows.</p>
             </div>
         </body>
         </html>
@@ -100,7 +116,7 @@ app.MapGet("/", (HttpContext context) =>
     {
         service = "HFL Razbloker Enterprise Server",
         version = "1.0.0",
-        engine = ".NET 9",
+        server_ip = "31.77.8.9",
         doh_endpoint = "/dns-query",
         license_endpoint = "/api/v1/license/validate",
         test_domains = new[] { "test.local", "*.local", "*.internal" }

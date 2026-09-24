@@ -101,7 +101,7 @@ namespace HFL.Client.Services
 
                 // Intercept all outgoing IPv4 DNS queries (UDP dst port 53)
                 // Adapters in Windows settings remain 100% unchanged!
-                _divertHandle = WinDivertOpen("outbound and !loopback and ip and udp.DstPort == 53", WINDIVERT_LAYER_NETWORK, 0, 0);
+                _divertHandle = WinDivertOpen("outbound and !loopback and ip and udp.DstPort == 53", WINDIVERT_LAYER_NETWORK, 100, 0);
                 if (_divertHandle == IntPtr.Zero || _divertHandle == new IntPtr(-1))
                 {
                     _divertHandle = IntPtr.Zero;

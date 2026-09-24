@@ -43,7 +43,7 @@ ExecStart=/usr/bin/dotnet /opt/hfl-server/HFL.Server.dll
 Restart=always
 RestartSec=5
 Environment=ASPNETCORE_ENVIRONMENT=Production
-Environment=ASPNETCORE_URLS=http://0.0.0.0:5000
+Environment=ASPNETCORE_URLS=http://0.0.0.0:80;http://0.0.0.0:5000
 Environment=BOT_TOKEN=8649333793:AAFTEfrJiqN0FQyLPuL3Sx0idg0earZHoA8
 Environment=ADMIN_TELEGRAM_ID=6014501462
 
