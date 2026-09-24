@@ -42,3 +42,9 @@ Route::prefix('cron')->group(function () {
     Route::get('/list', [CronManagerController::class, 'index']);
     Route::post('/create', [CronManagerController::class, 'store']);
 });
+
+Route::prefix('dns')->group(function () {
+    Route::get('/records', [\App\Http\Controllers\Api\DnsRecordsController::class, 'index']);
+    Route::post('/records', [\App\Http\Controllers\Api\DnsRecordsController::class, 'store']);
+    Route::delete('/records/{id}', [\App\Http\Controllers\Api\DnsRecordsController::class, 'destroy']);
+});
