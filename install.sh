@@ -9,7 +9,24 @@ if [ "$EUID" -ne 0 ]; then
   exit 1
 fi
 
-# 1. Install .NET 9 if not present
+# 1. Free Port 53 from systemd-resolved if active
+echo "🔓 Освобождение UDP порта 53 для HFL DNS сервера..."
+if systemctl is-active --quiet systemd-resolved 2>/dev/null; then
+    mkdir -p /etc/systemd/resolved.conf.d/
+    cat << 'EOF' > /etc/systemd/resolved.conf.d/disable-stub.conf
+[Resolve]
+DNSStubListener=no
+EOF
+    systemctl restart systemd-resolved 2>/dev/null || true
+fi
+
+# Set local DNS resolver
+if [ -f /etc/resolv.conf ]; then
+    chattr -i /etc/resolv.conf 2>/dev/null || true
+    echo -e "nameserver 127.0.0.1\nnameserver 1.1.1.1" > /etc/resolv.conf 2>/dev/null || true
+fi
+
+# 2. Install .NET 9 if not present
 if ! command -v dotnet &> /dev/null; then
     echo "📦 Установка .NET 9 SDK..."
     if [ -f /etc/debian_version ]; then
@@ -23,13 +40,13 @@ if ! command -v dotnet &> /dev/null; then
     fi
 fi
 
-# 2. Build Server
+# 3. Build Server
 echo "🔨 Сборка HFL Server..."
 dotnet publish src/HFL.Server/HFL.Server.csproj -c Release -r linux-x64 --self-contained false -o /opt/hfl-server
 
 mkdir -p /opt/hfl-server/data
 
-# 3. Create systemd service
+# 4. Create systemd service
 cat << 'EOF' > /etc/systemd/system/hfl-server.service
 [Unit]
 Description=HFL Razbloker Enterprise Server (DoH + DNS + Telegram Bot + License API)
@@ -41,7 +58,7 @@ User=root
 WorkingDirectory=/opt/hfl-server
 ExecStart=/usr/bin/dotnet /opt/hfl-server/HFL.Server.dll
 Restart=always
-RestartSec=5
+RestartSec=3
 Environment=ASPNETCORE_ENVIRONMENT=Production
 Environment=ASPNETCORE_URLS=http://0.0.0.0:5000
 Environment=BOT_TOKEN=8649333793:AAFTEfrJiqN0FQyLPuL3Sx0idg0earZHoA8
@@ -51,11 +68,13 @@ Environment=ADMIN_TELEGRAM_ID=6014501462
 WantedBy=multi-user.target
 EOF
 
-# 4. Start service
+# 5. Start service
 systemctl daemon-reload
 systemctl enable hfl-server
 systemctl restart hfl-server
 
-echo "✅ HFL Server успешно установлен и запущен как системная служба!"
+sleep 2
+
+echo "✅ HFL Server успешно запущен на порту 53 (DNS) и 5000 (API/DoH)!"
 echo "📊 Статус службы: systemctl status hfl-server"
 echo "📜 Логи: journalctl -u hfl-server -f"
