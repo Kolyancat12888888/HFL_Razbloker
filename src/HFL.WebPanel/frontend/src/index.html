@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="ru" class="dark">
+<head>
+  <meta charset="utf-8">
+  <title>HFL Cloud & WebPanel Enterprise</title>
+  <base href="/">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="icon" type="image/x-icon" href="favicon.ico">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            dark: {
+              950: '#06080e',
+              900: '#0a0e17',
+              850: '#0f172a',
+              800: '#131d2f',
+              750: '#182438',
+              700: '#1e293b',
+              600: '#334155',
+            },
+            neon: {
+              blue: '#38bdf8',
+              cyan: '#06b6d4',
+              purple: '#c084fc',
+              pink: '#f43f5e',
+              green: '#4ade80',
+              amber: '#fbbf24',
+            }
+          },
+          fontFamily: {
+            mono: ['"JetBrains Mono"', 'monospace'],
+            sans: ['Inter', 'sans-serif'],
+          }
+        }
+      }
+    }
+  </script>
+</head>
+<body class="bg-dark-950 text-slate-100 font-sans antialiased selection:bg-neon-blue selection:text-dark-950 overflow-x-hidden min-h-screen">
+  <app-root></app-root>
+</body>
+</html>
