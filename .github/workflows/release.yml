@@ -35,20 +35,34 @@ jobs:
         id: versioning
         shell: pwsh
         run: |
+          $ErrorActionPreference = 'SilentlyContinue'
+
           if ("${{ github.event.inputs.force_version }}" -ne "") {
             $version = "${{ github.event.inputs.force_version }}"
             Write-Host "Forced version: $version"
-            echo "version=$version" >> $env:GITHUB_OUTPUT
-            echo "tag=v$version" >> $env:GITHUB_OUTPUT
+            "version=$version" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+            "tag=v$version" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+            $LASTEXITCODE = 0
             exit 0
           }
 
-          # Get latest git tag
-          $latestTag = git describe --tags --abbrev=0 2>$null
+          # Get all tags sorted by version
+          $tagList = git tag -l --sort=-v:refname
+          $LASTEXITCODE = 0
+
+          $latestTag = $null
+          if ($tagList) {
+            if ($tagList -is [array]) {
+              $latestTag = $tagList[0]
+            } else {
+              $latestTag = $tagList
+            }
+          }
+
           if (-not $latestTag) {
             $version = "1.0.0"
           } else {
-            $cleanTag = $latestTag.TrimStart('v')
+            $cleanTag = $latestTag.TrimStart('v').Trim()
             $parts = $cleanTag.Split('.')
             if ($parts.Length -lt 3) {
               $major = 1; $minor = 0; $patch = 0
@@ -76,8 +90,9 @@ jobs:
           }
 
           Write-Host "Calculated Next Release Version: $version"
-          echo "version=$version" >> $env:GITHUB_OUTPUT
-          echo "tag=v$version" >> $env:GITHUB_OUTPUT
+          "version=$version" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+          "tag=v$version" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+          $LASTEXITCODE = 0
 
       - name: Restore Client Dependencies
         run: dotnet restore src/HFL.Client/HFL.Client.csproj
@@ -103,15 +118,6 @@ jobs:
           $zipName = "HFL_Razbloker_v$ver.zip"
           Compress-Archive -Path ./publish/client/* -DestinationPath "./$zipName"
           Copy-Item ./publish/client/HFL_Razbloker.exe -Destination "./HFL_Razbloker.exe"
-
-      - name: Create Git Tag & Push
-        shell: pwsh
-        run: |
-          $tag = "${{ steps.versioning.outputs.tag }}"
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git tag $tag
-          git push origin $tag
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
