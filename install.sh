@@ -13,6 +13,8 @@ fi
 echo "🔓 Освобождение UDP порта 53 для HFL DNS сервера..."
 systemctl stop pdns pdns-recursor bind9 named dnsmasq systemd-resolved 2>/dev/null || true
 systemctl disable pdns pdns-recursor bind9 named dnsmasq systemd-resolved 2>/dev/null || true
+killall -9 pdns_server pdns_recursor named dnsmasq 2>/dev/null || true
+fuser -k 53/udp 53/tcp 2>/dev/null || true
 
 if systemctl is-active --quiet systemd-resolved 2>/dev/null; then
     mkdir -p /etc/systemd/resolved.conf.d/
