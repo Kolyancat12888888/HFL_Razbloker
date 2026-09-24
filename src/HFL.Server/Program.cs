@@ -39,6 +39,24 @@ using (var scope = app.Services.CreateScope())
     var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
     db.Database.EnsureCreated();
 
+    // Auto-migrate schema changes in SQLite
+    try { db.Database.ExecuteSqlRaw("ALTER TABLE Licenses ADD COLUMN LastSeenIp TEXT NULL;"); } catch { }
+    try
+    {
+        db.Database.ExecuteSqlRaw(@"
+            CREATE TABLE IF NOT EXISTS PanelUsers (
+                Id INTEGER PRIMARY KEY AUTOINCREMENT,
+                Username TEXT NOT NULL UNIQUE,
+                PasswordHash TEXT NOT NULL,
+                Role TEXT NOT NULL,
+                DiskQuota TEXT NOT NULL,
+                MaxSites INTEGER NOT NULL,
+                CreatedAt TEXT NOT NULL,
+                LastLoginAt TEXT NULL
+            );");
+    }
+    catch { }
+
     var setting = db.Settings.FirstOrDefault();
     if (setting == null)
     {
