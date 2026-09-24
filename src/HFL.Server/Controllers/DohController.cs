@@ -30,24 +30,28 @@ namespace HFL.Server.Controllers
         }
 
         [HttpPost]
-        [Consumes("application/dns-message")]
-        [Produces("application/dns-message")]
         public async Task<IActionResult> PostDnsQuery()
         {
-            using var ms = new MemoryStream();
-            await Request.Body.CopyToAsync(ms);
-            byte[] queryBytes = ms.ToArray();
+            byte[] queryBytes;
+            using (var ms = new MemoryStream())
+            {
+                await Request.Body.CopyToAsync(ms);
+                queryBytes = ms.ToArray();
+            }
 
-            if (queryBytes.Length == 0)
-                return BadRequest();
+            if (queryBytes.Length < 12)
+                return BadRequest("Invalid DNS query length");
 
             var (key, clientIp) = GetClientAuth();
             byte[] responseBytes = await _resolver.ProcessDnsQueryAsync(queryBytes, key, clientIp);
+            
+            if (responseBytes == null || responseBytes.Length == 0)
+                return StatusCode(504, "DNS upstream timeout");
+
             return File(responseBytes, "application/dns-message");
         }
 
         [HttpGet]
-        [Produces("application/dns-message")]
         public async Task<IActionResult> GetDnsQuery([FromQuery] string? dns)
         {
             if (string.IsNullOrEmpty(dns))
@@ -66,6 +70,10 @@ namespace HFL.Server.Controllers
                 byte[] queryBytes = Convert.FromBase64String(base64);
                 var (key, clientIp) = GetClientAuth();
                 byte[] responseBytes = await _resolver.ProcessDnsQueryAsync(queryBytes, key, clientIp);
+                
+                if (responseBytes == null || responseBytes.Length == 0)
+                    return StatusCode(504, "DNS upstream timeout");
+
                 return File(responseBytes, "application/dns-message");
             }
             catch

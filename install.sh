@@ -31,6 +31,19 @@ if [ -f /etc/resolv.conf ]; then
     echo -e "nameserver 127.0.0.1\nnameserver 1.1.1.1" > /etc/resolv.conf 2>/dev/null || true
 fi
 
+# Open Firewall ports (UFW / iptables)
+echo "🛡️ Открытие портов в фаерволе (53 UDP/TCP, 80, 443, 5000)..."
+if command -v ufw &> /dev/null; then
+    ufw allow 53/udp 2>/dev/null || true
+    ufw allow 53/tcp 2>/dev/null || true
+    ufw allow 80/tcp 2>/dev/null || true
+    ufw allow 443/tcp 2>/dev/null || true
+    ufw allow 5000/tcp 2>/dev/null || true
+fi
+iptables -I INPUT -p udp --dport 53 -j ACCEPT 2>/dev/null || true
+iptables -I INPUT -p tcp --dport 53 -j ACCEPT 2>/dev/null || true
+iptables -I INPUT -p tcp --dport 5000 -j ACCEPT 2>/dev/null || true
+
 # 2. Install .NET 9 if not present
 if ! command -v dotnet &> /dev/null; then
     echo "📦 Установка .NET 9 SDK..."
