@@ -9,8 +9,11 @@ if [ "$EUID" -ne 0 ]; then
   exit 1
 fi
 
-# 1. Free Port 53 from systemd-resolved if active
+# 1. Free Port 53 from systemd-resolved and pdns / named / dnsmasq if active
 echo "🔓 Освобождение UDP порта 53 для HFL DNS сервера..."
+systemctl stop pdns pdns-recursor bind9 named dnsmasq systemd-resolved 2>/dev/null || true
+systemctl disable pdns pdns-recursor bind9 named dnsmasq systemd-resolved 2>/dev/null || true
+
 if systemctl is-active --quiet systemd-resolved 2>/dev/null; then
     mkdir -p /etc/systemd/resolved.conf.d/
     cat << 'EOF' > /etc/systemd/resolved.conf.d/disable-stub.conf
