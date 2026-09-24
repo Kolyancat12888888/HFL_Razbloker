@@ -13,7 +13,6 @@ namespace HFL.Client
     {
         private readonly LicenseClientService _licenseService;
         private readonly ZapretService _zapretService;
-        private readonly XrayService _xrayService;
         private readonly DnsClientService _dnsService;
         private readonly StrategyOptimizer _optimizer;
         private readonly StringBuilder _logBuffer = new();
@@ -24,9 +23,8 @@ namespace HFL.Client
 
             _licenseService = new LicenseClientService();
             _zapretService = new ZapretService();
-            _xrayService = new XrayService();
             _dnsService = new DnsClientService();
-            _optimizer = new StrategyOptimizer(_zapretService, _xrayService, _dnsService, _licenseService);
+            _optimizer = new StrategyOptimizer(_zapretService, _dnsService, _licenseService);
 
             _optimizer.OnLog += AppendLog;
             _optimizer.OnLatencyChanged += UpdateLatencyUi;
@@ -53,7 +51,7 @@ namespace HFL.Client
             if (res.Valid)
             {
                 UpdateLicenseInfoUi();
-                AppendLog("✅ Лицензия подтверждена. Готов к автономной работе.");
+                AppendLog("✅ Лицензия подтверждена. Zapret готов к запуску.");
             }
             else
             {
@@ -99,7 +97,8 @@ namespace HFL.Client
             else
             {
                 var settings = ConfigService.Load();
-                await _optimizer.StartAutonomousAsync(settings);
+                int strategyIndex = StrategyComboBox.SelectedIndex - 1; // -1 for Auto
+                await _optimizer.StartAutonomousAsync(settings, strategyIndex);
             }
         }
 
@@ -112,9 +111,9 @@ namespace HFL.Client
                     PowerButtonText.Text = "ОТКЛЮЧИТЬ";
                     PowerButtonText.Foreground = new SolidColorBrush(Color.FromRgb(248, 113, 113));
                     PowerIcon.Text = "🛡️";
-                    ConnectionStatusText.Text = "🟢 Подключено (Защита активна)";
+                    ConnectionStatusText.Text = "🟢 Защита активна (DPI Bypass)";
                     ConnectionStatusText.Foreground = new SolidColorBrush(Color.FromRgb(52, 211, 153));
-                    YoutubeStatusText.Text = "🟢 Доступен";
+                    YoutubeStatusText.Text = "🟢 Доступен (4K)";
                     YoutubeStatusText.Foreground = new SolidColorBrush(Color.FromRgb(52, 211, 153));
                     DiscordStatusText.Text = "🟢 Доступен";
                     DiscordStatusText.Foreground = new SolidColorBrush(Color.FromRgb(52, 211, 153));
@@ -148,7 +147,6 @@ namespace HFL.Client
                     PingText.Text = $"{ms} ms";
                     if (ms <= 80)
                     {
-                        // Target Swiss-Clock Latency: Ultra Green
                         PingText.Foreground = new SolidColorBrush(Color.FromRgb(16, 185, 129));
                     }
                     else if (ms <= 150)
@@ -179,21 +177,6 @@ namespace HFL.Client
                 LogTextBox.Text = _logBuffer.ToString();
                 LogScrollViewer.ScrollToEnd();
             });
-        }
-
-        private void ModeComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
-        {
-            if (!IsLoaded) return;
-            var settings = ConfigService.Load();
-            switch (ModeComboBox.SelectedIndex)
-            {
-                case 0: settings.SelectedMode = "Auto"; break;
-                case 1: settings.SelectedMode = "Zapret"; break;
-                case 2: settings.SelectedMode = "3XUI"; break;
-                case 3: settings.SelectedMode = "DNS"; break;
-            }
-            ConfigService.Save(settings);
-            AppendLog($"⚙️ Выбран режим: {settings.SelectedMode}");
         }
 
         private void SettingsButton_Click(object sender, RoutedEventArgs e)

@@ -8,6 +8,7 @@
     <UseWPF>true</UseWPF>
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <AssemblyTitle>HFL Razbloker Enterprise</AssemblyTitle>
+    <AssemblyName>HFL_Razbloker</AssemblyName>
     <AssemblyDescription>Autonomous High-Performance Unblocker &amp; VPN Client</AssemblyDescription>
     <Company>HFL Enterprise</Company>
     <Product>HFL Razbloker</Product>

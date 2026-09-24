@@ -10,7 +10,6 @@ namespace HFL.Client.Services
     public class StrategyOptimizer
     {
         private readonly ZapretService _zapret;
-        private readonly XrayService _xray;
         private readonly DnsClientService _dns;
         private readonly LicenseClientService _license;
         private readonly HttpClient _probeHttp;
@@ -27,57 +26,53 @@ namespace HFL.Client.Services
         public int CurrentLatencyMs { get; private set; } = 0;
         public bool IsActive => _isRunning;
 
-        public StrategyOptimizer(ZapretService zapret, XrayService xray, DnsClientService dns, LicenseClientService license)
+        public StrategyOptimizer(ZapretService zapret, DnsClientService dns, LicenseClientService license)
         {
             _zapret = zapret;
-            _xray = xray;
             _dns = dns;
             _license = license;
             _probeHttp = new HttpClient { Timeout = TimeSpan.FromSeconds(3) };
         }
 
-        public async Task StartAutonomousAsync(AppSettings settings)
+        public async Task StartAutonomousAsync(AppSettings settings, int manualStrategyIndex = -1)
         {
             Stop();
             _isRunning = true;
             _cts = new CancellationTokenSource();
             OnConnectionStateChanged?.Invoke(true);
 
-            Log("🚀 Запуск автономного оптимизатора «Швейцарские часы»...");
+            Log("🚀 Запуск Zapret DPI Bypass («Швейцарские часы»)...");
 
             var token = _cts.Token;
 
-            // Apply DNS if configured
-            if (!string.IsNullOrEmpty(settings.CustomDohUrl) || !string.IsNullOrEmpty(_license.CurrentLicense?.ServerConfig?.DohUrl))
+            if (manualStrategyIndex >= 0)
             {
-                Log("🔒 Активация защищенного DNS-over-HTTPS резолвера...");
-            }
+                string name = manualStrategyIndex switch
+                {
+                    0 => "Zapret: YouTube + Discord 4K (Fake TLS/QUIC)",
+                    1 => "Zapret: Disorder + BadSeq",
+                    2 => "Zapret: Fake Repeats + AutoTTL",
+                    3 => "Zapret: Discord Voice Fix",
+                    _ => $"Zapret Профиль {manualStrategyIndex + 1}"
+                };
 
-            if (settings.SelectedMode == "Zapret")
-            {
-                SetStrategy("Zapret Direct DPI Bypass");
-                _zapret.Start(null, 0);
-            }
-            else if (settings.SelectedMode == "3XUI")
-            {
-                string vless = _license.CurrentLicense?.ServerConfig?.VlessUri ?? "";
-                SetStrategy("3X-UI VLESS Reality");
-                _xray.Start(vless, settings.DirectRuRouting);
+                SetStrategy(name);
+                _zapret.Start(null, manualStrategyIndex);
+                Log($"⚡ Активирован выбранный профиль: {name}");
             }
             else
             {
-                // Full Autonomous Auto Mode ("Швейцарские часы")
-                await RunAutonomousFallbackLoopAsync(settings, token);
+                // Full Autonomous Auto Mode
+                await RunAutonomousFallbackLoopAsync(token);
             }
 
-            // Start background latency & health monitor
-            _ = MonitorHealthLoopAsync(settings, token);
+            _ = MonitorHealthLoopAsync(token);
         }
 
-        private async Task RunAutonomousFallbackLoopAsync(AppSettings settings, CancellationToken token)
+        private async Task RunAutonomousFallbackLoopAsync(CancellationToken token)
         {
-            Log("⚙️ Тестирование стратегии уровня 1: Zapret Multi-Split (Минимальный пинг)...");
-            SetStrategy("Zapret Level 1 (Ultra-Low Latency)");
+            Log("⚙️ Проверка Стратегии 1: YouTube 4K + Discord Voice (Fake TLS / QUIC)...");
+            SetStrategy("Zapret: Стратегия 1 (YouTube + Discord)");
             _zapret.Start(null, 0);
 
             await Task.Delay(1500, token);
@@ -87,43 +82,31 @@ namespace HFL.Client.Services
             {
                 CurrentLatencyMs = ping;
                 OnLatencyChanged?.Invoke(ping);
-                Log($"✅ Стратегия 1 успешно зафиксирована! Пинг: {ping} мс (Швейцарская точность)");
+                Log($"✅ Стратегия 1 успешно работает! Задержка: {ping} мс (Швейцарская точность)");
                 return;
             }
 
-            Log("⚠️ Провайдер фильтрует стратегию 1. Переключение на уровень 2 (Disorder + BadSeq)...");
-            SetStrategy("Zapret Level 2 (Disorder)");
+            Log("⚠️ Провайдер фильтрует профиль 1. Переключение на Стратегию 2 (Disorder2)...");
+            SetStrategy("Zapret: Стратегия 2 (Disorder)");
             _zapret.Start(null, 1);
 
             await Task.Delay(1500, token);
             ping = await ProbeTargetAsync("https://www.youtube.com");
 
-            if (ping > 0 && ping <= 150)
+            if (ping > 0)
             {
                 CurrentLatencyMs = ping;
                 OnLatencyChanged?.Invoke(ping);
-                Log($"✅ Стратегия 2 активна! Пинг: {ping} мс");
+                Log($"✅ Стратегия 2 зафиксирована! Задержка: {ping} мс");
                 return;
             }
 
-            // Fallback to VLESS Reality if Zapret is completely blocked by ISP
-            string vless = _license.CurrentLicense?.ServerConfig?.VlessUri ?? "";
-            if (!string.IsNullOrEmpty(vless))
-            {
-                Log("🛡️ Включение резервного канала: 3X-UI Enterprise VLESS Reality (Smart Direct RU Split)...");
-                _zapret.Stop();
-                SetStrategy("3X-UI VLESS Reality (Auto Fallback)");
-                _xray.Start(vless, settings.DirectRuRouting);
-            }
-            else
-            {
-                Log("⚡ Активация универсального Zapret Fake-Repeat профиля...");
-                SetStrategy("Zapret Level 3 (Fake-Repeats)");
-                _zapret.Start(null, 2);
-            }
+            Log("⚡ Активация универсальной Стратегии 3 (Fake Repeats + AutoTTL)...");
+            SetStrategy("Zapret: Стратегия 3 (Fake Repeats)");
+            _zapret.Start(null, 2);
         }
 
-        private async Task MonitorHealthLoopAsync(AppSettings settings, CancellationToken token)
+        private async Task MonitorHealthLoopAsync(CancellationToken token)
         {
             while (!token.IsCancellationRequested)
             {
@@ -157,7 +140,6 @@ namespace HFL.Client.Services
             _cts = null;
 
             _zapret.Stop();
-            _xray.Stop();
             _dns.RestoreDhcpDns();
 
             _isRunning = false;
@@ -166,7 +148,7 @@ namespace HFL.Client.Services
             OnLatencyChanged?.Invoke(0);
             OnStrategyChanged?.Invoke("Отключено");
             OnConnectionStateChanged?.Invoke(false);
-            Log("⏹️ Все службы обхода остановлены.");
+            Log("⏹️ Zapret остановлен. Прямой трафик восстановлен.");
         }
 
         private async Task<int> ProbeTargetAsync(string url)
