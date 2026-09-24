@@ -65,7 +65,13 @@ if [ -d /etc/nginx/sites-available ]; then
     nginx -t && systemctl reload nginx 2>/dev/null || true
 fi
 
-# 5. Create systemd service
+# 6. Deploy HFL WebPanel (Laravel Backend & Angular Frontend)
+echo "💎 Развертывание HFL WebPanel Enterprise..."
+mkdir -p /var/www/hfl-panel
+cp -r src/HFL.WebPanel/frontend/src/* /var/www/hfl-panel/ 2>/dev/null || true
+cp deploy/nginx/index.html /var/www/hfl-panel/index.html 2>/dev/null || true
+
+# 7. Create systemd service
 cat << 'EOF' > /etc/systemd/system/hfl-server.service
 [Unit]
 Description=HFL Razbloker Enterprise Server (DoH + DNS + Telegram Bot + License API)
