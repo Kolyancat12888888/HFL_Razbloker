@@ -12,8 +12,8 @@ services:
       - "53:53/udp"      # Native UDP DNS
       - "53:53/tcp"      # Native TCP DNS
     environment:
-      - BOT_TOKEN=YOUR_TELEGRAM_BOT_TOKEN
-      - ADMIN_TELEGRAM_ID=YOUR_TELEGRAM_ID
+      - BOT_TOKEN=8649333793:AAFTEfrJiqN0FQyLPuL3Sx0idg0earZHoA8
+      - ADMIN_TELEGRAM_ID=6014501462
       - ASPNETCORE_ENVIRONMENT=Production
     volumes:
       - ./data:/app/data
