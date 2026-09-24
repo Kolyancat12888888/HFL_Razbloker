@@ -25,12 +25,20 @@ Route::prefix('sites')->group(function () {
     Route::delete('/{domain}', [SiteManagerController::class, 'destroy']);
 });
 
+Route::prefix('auth')->group(function () {
+    Route::post('/login', [\App\Http\Controllers\Api\AuthController::class, 'login']);
+    Route::get('/users', [\App\Http\Controllers\Api\AuthController::class, 'listUsers']);
+    Route::post('/users', [\App\Http\Controllers\Api\AuthController::class, 'createUser']);
+});
+
 Route::prefix('files')->group(function () {
     Route::get('/list', [FileManagerController::class, 'list']);
     Route::get('/read', [FileManagerController::class, 'readFile']);
     Route::post('/save', [FileManagerController::class, 'saveFile']);
     Route::post('/create', [FileManagerController::class, 'createItem']);
     Route::post('/delete', [FileManagerController::class, 'deleteItem']);
+    Route::post('/upload', [FileManagerController::class, 'uploadFile']);
+    Route::get('/download', [FileManagerController::class, 'downloadFile']);
 });
 
 Route::prefix('security')->group(function () {

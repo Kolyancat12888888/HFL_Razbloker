@@ -107,6 +107,40 @@ class FileManagerController extends Controller
     }
 
     /**
+     * Upload file to current directory
+     */
+    public function uploadFile(Request $request): JsonResponse
+    {
+        $relPath = ltrim($request->input('path', ''), '/');
+        $targetDir = realpath($this->basePath . '/' . $relPath) ?: $this->basePath;
+
+        if (!$request->hasFile('file')) {
+            return response()->json(['error' => 'No file provided'], 400);
+        }
+
+        $file = $request->file('file');
+        $filename = $file->getClientOriginalName();
+        $file->move($targetDir, $filename);
+
+        return response()->json(['success' => true, 'filename' => $filename]);
+    }
+
+    /**
+     * Download file directly
+     */
+    public function downloadFile(Request $request)
+    {
+        $relPath = ltrim($request->input('path', ''), '/');
+        $fullPath = realpath($this->basePath . '/' . $relPath);
+
+        if ($fullPath && file_exists($fullPath) && !is_dir($fullPath) && str_starts_with($fullPath, realpath($this->basePath))) {
+            return response()->download($fullPath);
+        }
+
+        return response()->json(['error' => 'File not found'], 404);
+    }
+
+    /**
      * Delete file or folder
      */
     public function deleteItem(Request $request): JsonResponse

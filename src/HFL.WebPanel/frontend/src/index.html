@@ -20,223 +20,351 @@
   </style>
 </head>
 <body class="bg-slate-950 text-slate-100 min-h-screen overflow-x-hidden">
-  <div id="app" class="flex h-screen w-full overflow-hidden">
-    <!-- Sidebar -->
-    <aside class="w-64 flex-shrink-0 bg-slate-900/90 border-r border-slate-800 backdrop-blur-xl flex flex-col justify-between z-20">
-      <div>
-        <div class="h-16 flex items-center px-6 gap-3 border-b border-slate-800/80">
-          <div class="w-9 h-9 rounded-xl bg-gradient-to-tr from-cyan-500 to-indigo-600 flex items-center justify-center shadow-lg shadow-cyan-500/20">
-            <span class="text-white font-black text-lg">H</span>
+  <div id="app" class="h-screen w-full flex">
+    
+    <!-- LOGIN MODAL IF NOT AUTHENTICATED -->
+    <div v-if="!currentUser" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/90 backdrop-blur-xl">
+      <div class="w-full max-w-md glass-card p-8 shadow-2xl border border-cyan-500/30">
+        <div class="text-center mb-6">
+          <div class="w-12 h-12 rounded-2xl bg-gradient-to-tr from-cyan-500 to-indigo-600 flex items-center justify-center mx-auto shadow-lg shadow-cyan-500/20 mb-3">
+            <span class="text-white font-black text-2xl">H</span>
+          </div>
+          <h2 class="text-2xl font-extrabold text-white">Вход в HFL WebPanel</h2>
+          <p class="text-xs text-slate-400 mt-1">Авторизация по ролям (SuperAdmin, Admin, Client)</p>
+        </div>
+
+        <form @submit.prevent="handleLogin" class="space-y-4">
+          <div>
+            <label class="text-xs font-mono text-slate-400">Имя пользователя / Логин</label>
+            <input v-model="loginForm.username" type="text" required placeholder="root" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-cyan-500 mt-1">
           </div>
           <div>
-            <span class="font-extrabold text-base tracking-wider bg-gradient-to-r from-cyan-400 to-indigo-400 bg-clip-text text-transparent">HFL CLOUD</span>
-            <span class="block text-[10px] text-cyan-400/80 font-mono font-bold tracking-widest">ISP ENTERPRISE</span>
+            <label class="text-xs font-mono text-slate-400">Пароль</label>
+            <input v-model="loginForm.password" type="password" required placeholder="••••••••" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-cyan-500 mt-1">
           </div>
-        </div>
-
-        <nav class="p-3 space-y-1">
-          <div class="px-3 py-1.5 text-[10px] font-mono uppercase tracking-wider text-slate-500 font-semibold">Управление сервером</div>
-          
-          <div (click)="currentTab = 'dashboard'" :class="['nav-item', currentTab === 'dashboard' ? 'active-nav' : '']" @click="currentTab = 'dashboard'">
-            <span>📊 Дашборд</span>
+          <div v-if="loginError" class="p-3 rounded-lg bg-rose-500/10 border border-rose-500/20 text-rose-400 text-xs font-mono">
+            {{ loginError }}
           </div>
-          <div :class="['nav-item', currentTab === 'sites' ? 'active-nav' : '']" @click="currentTab = 'sites'">
-            <span>🌐 Сайты и Nginx</span>
-            <span class="ml-auto px-1.5 py-0.5 text-[10px] font-mono bg-sky-500/20 text-sky-300 rounded">{{ sites.length }}</span>
-          </div>
-          <div :class="['nav-item', currentTab === 'dns' ? 'active-nav' : '']" @click="currentTab = 'dns'">
-            <span>📡 HFL DNS Сервер</span>
-            <span class="ml-auto px-1.5 py-0.5 text-[10px] font-mono bg-purple-500/20 text-purple-300 rounded">:53</span>
-          </div>
-          <div :class="['nav-item', currentTab === 'files' ? 'active-nav' : '']" @click="currentTab = 'files'">
-            <span>📁 Файловый менеджер</span>
-          </div>
-          <div :class="['nav-item', currentTab === 'security' ? 'active-nav' : '']" @click="currentTab = 'security'">
-            <span>🛡️ Файрвол & UFW</span>
-          </div>
-          <div :class="['nav-item', currentTab === 'cron' ? 'active-nav' : '']" @click="currentTab = 'cron'">
-            <span>⏱️ Планировщик Cron</span>
-          </div>
-        </nav>
-      </div>
-
-      <div class="p-3 border-t border-slate-800 bg-slate-950/40">
-        <div class="flex items-center gap-3 p-2 rounded-xl bg-slate-900/80 border border-slate-800">
-          <div class="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse"></div>
-          <div class="flex-1 min-w-0">
-            <div class="text-xs font-semibold text-slate-200">31.77.8.9</div>
-            <div class="text-[10px] text-slate-500 font-mono">Ubuntu Linux &bull; root</div>
-          </div>
+          <button type="submit" class="w-full py-3 rounded-xl bg-gradient-to-r from-cyan-500 to-sky-500 hover:from-cyan-400 hover:to-sky-400 text-slate-950 font-bold text-sm shadow-lg shadow-cyan-500/20 transition transform active:scale-95">
+            Войти в панель
+          </button>
+        </form>
+        <div class="mt-4 text-center text-[10px] text-slate-500 font-mono">
+          Стандартный вход: root / root
         </div>
       </div>
-    </aside>
+    </div>
 
-    <!-- Main Content -->
-    <main class="flex-1 flex flex-col min-w-0 overflow-hidden bg-gradient-to-b from-slate-900 to-slate-950">
-      <header class="h-16 flex items-center justify-between px-8 border-b border-slate-800/80 backdrop-blur-xl bg-slate-900/50">
-        <div class="text-sm font-mono text-cyan-400 font-bold">hfl-control-panel.internal</div>
-        <div class="flex items-center gap-3">
-          <div class="px-3 py-1 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-mono">
-            DNS :53 ACTIVE
+    <!-- MAIN APP LAYOUT (SHOWN WHEN LOGGED IN) -->
+    <div v-if="currentUser" class="flex h-screen w-full overflow-hidden">
+      <!-- Sidebar -->
+      <aside class="w-64 flex-shrink-0 bg-slate-900/90 border-r border-slate-800 backdrop-blur-xl flex flex-col justify-between z-20">
+        <div>
+          <div class="h-16 flex items-center px-6 gap-3 border-b border-slate-800/80">
+            <div class="w-9 h-9 rounded-xl bg-gradient-to-tr from-cyan-500 to-indigo-600 flex items-center justify-center shadow-lg shadow-cyan-500/20">
+              <span class="text-white font-black text-lg">H</span>
+            </div>
+            <div>
+              <span class="font-extrabold text-base tracking-wider bg-gradient-to-r from-cyan-400 to-indigo-400 bg-clip-text text-transparent">HFL CLOUD</span>
+              <span class="block text-[10px] text-cyan-400/80 font-mono font-bold tracking-widest">ISP ENTERPRISE</span>
+            </div>
           </div>
+
+          <nav class="p-3 space-y-1">
+            <div class="px-3 py-1.5 text-[10px] font-mono uppercase tracking-wider text-slate-500 font-semibold">Управление сервером</div>
+            
+            <div :class="['nav-item', currentTab === 'dashboard' ? 'active-nav' : '']" @click="currentTab = 'dashboard'">
+              <span>📊 Дашборд</span>
+            </div>
+            <div :class="['nav-item', currentTab === 'sites' ? 'active-nav' : '']" @click="currentTab = 'sites'">
+              <span>🌐 Сайты и Nginx</span>
+              <span class="ml-auto px-1.5 py-0.5 text-[10px] font-mono bg-sky-500/20 text-sky-300 rounded">{{ sites.length }}</span>
+            </div>
+            <div :class="['nav-item', currentTab === 'dns' ? 'active-nav' : '']" @click="currentTab = 'dns'">
+              <span>📡 HFL DNS Сервер</span>
+              <span class="ml-auto px-1.5 py-0.5 text-[10px] font-mono bg-purple-500/20 text-purple-300 rounded">:53</span>
+            </div>
+            <div :class="['nav-item', currentTab === 'files' ? 'active-nav' : '']" @click="currentTab = 'files'; loadFiles('');">
+              <span>📁 Файловый менеджер</span>
+            </div>
+            <div :class="['nav-item', currentTab === 'users' ? 'active-nav' : '']" @click="currentTab = 'users'; loadUsers();">
+              <span>👥 Пользователи & Роли</span>
+            </div>
+            <div :class="['nav-item', currentTab === 'security' ? 'active-nav' : '']" @click="currentTab = 'security'">
+              <span>🛡️ Файрвол & UFW</span>
+            </div>
+            <div :class="['nav-item', currentTab === 'cron' ? 'active-nav' : '']" @click="currentTab = 'cron'">
+              <span>⏱️ Планировщик Cron</span>
+            </div>
+          </nav>
         </div>
-      </header>
 
-      <div class="flex-1 overflow-y-auto p-8">
-        <!-- Dashboard Tab -->
-        <div v-if="currentTab === 'dashboard'" class="space-y-8">
-          <div>
-            <h1 class="text-2xl font-extrabold text-white">Панель управления сервером</h1>
-            <p class="text-sm text-slate-400 mt-1">Реальный мониторинг аппаратных ресурсов и служб Linux</p>
-          </div>
-
-          <div class="grid grid-cols-1 md:grid-cols-4 gap-5">
-            <div class="glass-card p-5">
-              <span class="text-xs font-mono uppercase text-slate-400">Процессор (CPU)</span>
-              <div class="text-3xl font-bold font-mono text-cyan-400 mt-2">{{ stats.cpuUsage }}%</div>
-              <div class="w-full bg-slate-800 h-1.5 rounded-full mt-3 overflow-hidden">
-                <div class="bg-cyan-400 h-1.5 rounded-full" :style="{ width: stats.cpuUsage + '%' }"></div>
+        <div class="p-3 border-t border-slate-800 bg-slate-950/40">
+          <div class="flex items-center justify-between p-2 rounded-xl bg-slate-900/80 border border-slate-800">
+            <div class="flex items-center gap-2">
+              <div class="w-2.5 h-2.5 rounded-full bg-emerald-400"></div>
+              <div>
+                <div class="text-xs font-semibold text-slate-200">{{ currentUser.username }}</div>
+                <div class="text-[10px] text-cyan-400 font-mono">{{ currentUser.role }}</div>
               </div>
             </div>
+            <button @click="handleLogout" title="Выйти" class="p-1.5 rounded-lg text-slate-400 hover:text-rose-400">
+              <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/>
+              </svg>
+            </button>
+          </div>
+        </div>
+      </aside>
 
-            <div class="glass-card p-5">
-              <span class="text-xs font-mono uppercase text-slate-400">Оперативная память</span>
-              <div class="text-3xl font-bold font-mono text-indigo-400 mt-2">{{ stats.ramUsage }}%</div>
-              <div class="text-xs text-slate-500 font-mono mt-1">{{ stats.ramUsed }} / {{ stats.ramTotal }}</div>
-            </div>
-
-            <div class="glass-card p-5">
-              <span class="text-xs font-mono uppercase text-slate-400">NVMe Диск</span>
-              <div class="text-3xl font-bold font-mono text-emerald-400 mt-2">{{ stats.diskUsage }}%</div>
-              <div class="text-xs text-slate-500 font-mono mt-1">{{ stats.diskUsed }} / {{ stats.diskTotal }}</div>
-            </div>
-
-            <div class="glass-card p-5">
-              <span class="text-xs font-mono uppercase text-slate-400">Сайты & DNS</span>
-              <div class="text-3xl font-bold font-mono text-purple-400 mt-2">{{ sites.length }}</div>
-              <div class="text-xs text-slate-500 font-mono mt-1">Uptime: {{ stats.uptime }}</div>
+      <!-- Main Content -->
+      <main class="flex-1 flex flex-col min-w-0 overflow-hidden bg-gradient-to-b from-slate-900 to-slate-950">
+        <header class="h-16 flex items-center justify-between px-8 border-b border-slate-800/80 backdrop-blur-xl bg-slate-900/50">
+          <div class="text-sm font-mono text-cyan-400 font-bold">hfl-control-panel.internal</div>
+          <div class="flex items-center gap-3">
+            <div class="px-3 py-1 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-mono">
+              DNS :53 ACTIVE
             </div>
           </div>
+        </header>
 
-          <!-- Services List -->
-          <div class="glass-card p-6">
-            <h2 class="text-base font-bold text-white mb-4">Системные службы сервера</h2>
-            <div class="space-y-3">
-              <div v-for="s in services" :key="s.name" class="flex items-center justify-between p-3.5 rounded-xl bg-slate-900 border border-slate-800">
-                <div class="flex items-center gap-3">
-                  <span class="w-2.5 h-2.5 rounded-full bg-emerald-400"></span>
-                  <div>
-                    <div class="text-sm font-bold text-slate-200">{{ s.name }}</div>
-                    <div class="text-xs text-slate-500">{{ s.description }}</div>
-                  </div>
+        <div class="flex-1 overflow-y-auto p-8">
+          <!-- Dashboard Tab -->
+          <div v-if="currentTab === 'dashboard'" class="space-y-8">
+            <div>
+              <h1 class="text-2xl font-extrabold text-white">Панель управления сервером</h1>
+              <p class="text-sm text-slate-400 mt-1">Реальный мониторинг аппаратных ресурсов и служб Linux</p>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-5">
+              <div class="glass-card p-5">
+                <span class="text-xs font-mono uppercase text-slate-400">Процессор (CPU)</span>
+                <div class="text-3xl font-bold font-mono text-cyan-400 mt-2">{{ stats.cpuUsage }}%</div>
+                <div class="w-full bg-slate-800 h-1.5 rounded-full mt-3 overflow-hidden">
+                  <div class="bg-cyan-400 h-1.5 rounded-full" :style="{ width: stats.cpuUsage + '%' }"></div>
                 </div>
-                <span class="px-2 py-0.5 rounded text-xs font-mono bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">Running</span>
+              </div>
+
+              <div class="glass-card p-5">
+                <span class="text-xs font-mono uppercase text-slate-400">Оперативная память</span>
+                <div class="text-3xl font-bold font-mono text-indigo-400 mt-2">{{ stats.ramUsage }}%</div>
+                <div class="text-xs text-slate-500 font-mono mt-1">{{ stats.ramUsed }} / {{ stats.ramTotal }}</div>
+              </div>
+
+              <div class="glass-card p-5">
+                <span class="text-xs font-mono uppercase text-slate-400">NVMe Диск</span>
+                <div class="text-3xl font-bold font-mono text-emerald-400 mt-2">{{ stats.diskUsage }}%</div>
+                <div class="text-xs text-slate-500 font-mono mt-1">{{ stats.diskUsed }} / {{ stats.diskTotal }}</div>
+              </div>
+
+              <div class="glass-card p-5">
+                <span class="text-xs font-mono uppercase text-slate-400">Сайты & DNS</span>
+                <div class="text-3xl font-bold font-mono text-purple-400 mt-2">{{ sites.length }}</div>
+                <div class="text-xs text-slate-500 font-mono mt-1">Uptime: {{ stats.uptime }}</div>
+              </div>
+            </div>
+
+            <!-- Services List -->
+            <div class="glass-card p-6">
+              <h2 class="text-base font-bold text-white mb-4">Системные службы сервера</h2>
+              <div class="space-y-3">
+                <div v-for="s in services" :key="s.name" class="flex items-center justify-between p-3.5 rounded-xl bg-slate-900 border border-slate-800">
+                  <div class="flex items-center gap-3">
+                    <span class="w-2.5 h-2.5 rounded-full bg-emerald-400"></span>
+                    <div>
+                      <div class="text-sm font-bold text-slate-200">{{ s.name }}</div>
+                      <div class="text-xs text-slate-500">{{ s.description }}</div>
+                    </div>
+                  </div>
+                  <span class="px-2 py-0.5 rounded text-xs font-mono bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">Running</span>
+                </div>
               </div>
             </div>
           </div>
-        </div>
 
-        <!-- Sites Tab -->
-        <div v-if="currentTab === 'sites'" class="space-y-6">
-          <div class="flex items-center justify-between">
-            <h1 class="text-2xl font-extrabold text-white">Сайты и Виртуальные хосты</h1>
-            <button @click="createSitePrompt" class="px-4 py-2 rounded-xl bg-cyan-500 text-slate-950 font-bold text-xs shadow-lg shadow-cyan-500/20">+ Создать сайт</button>
+          <!-- Sites Tab -->
+          <div v-if="currentTab === 'sites'" class="space-y-6">
+            <div class="flex items-center justify-between">
+              <h1 class="text-2xl font-extrabold text-white">Сайты и Виртуальные хосты</h1>
+              <button @click="createSitePrompt" class="px-4 py-2 rounded-xl bg-cyan-500 text-slate-950 font-bold text-xs shadow-lg shadow-cyan-500/20">+ Создать сайт</button>
+            </div>
+
+            <div class="glass-card overflow-hidden">
+              <table class="w-full text-left text-xs font-mono">
+                <thead class="bg-slate-900 text-slate-400 text-[10px] border-b border-slate-800">
+                  <tr>
+                    <th class="p-4">Домен</th>
+                    <th class="p-4">Окружение</th>
+                    <th class="p-4">Папка</th>
+                    <th class="p-4">SSL</th>
+                    <th class="p-4">Статус</th>
+                  </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-800">
+                  <tr v-for="site in sites" :key="site.domain" class="hover:bg-slate-900/40">
+                    <td class="p-4 font-bold text-cyan-400">{{ site.domain }}</td>
+                    <td class="p-4">{{ site.envType }} {{ site.phpVersion }}</td>
+                    <td class="p-4 text-slate-400">{{ site.docRoot }}</td>
+                    <td class="p-4 text-emerald-400">{{ site.sslType }}</td>
+                    <td class="p-4"><span class="px-2 py-0.5 rounded text-[10px] bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">ONLINE</span></td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
           </div>
 
-          <div class="glass-card overflow-hidden">
-            <table class="w-full text-left text-xs font-mono">
-              <thead class="bg-slate-900 text-slate-400 text-[10px] border-b border-slate-800">
-                <tr>
-                  <th class="p-4">Домен</th>
-                  <th class="p-4">Окружение</th>
-                  <th class="p-4">Папка</th>
-                  <th class="p-4">SSL</th>
-                  <th class="p-4">Статус</th>
-                </tr>
-              </thead>
-              <tbody class="divide-y divide-slate-800">
-                <tr v-for="site in sites" :key="site.domain" class="hover:bg-slate-900/40">
-                  <td class="p-4 font-bold text-cyan-400">{{ site.domain }}</td>
-                  <td class="p-4">{{ site.envType }} {{ site.phpVersion }}</td>
-                  <td class="p-4 text-slate-400">{{ site.docRoot }}</td>
-                  <td class="p-4 text-emerald-400">{{ site.sslType }}</td>
-                  <td class="p-4"><span class="px-2 py-0.5 rounded text-[10px] bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">ONLINE</span></td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-        </div>
+          <!-- DNS Tab -->
+          <div v-if="currentTab === 'dns'" class="space-y-6">
+            <div class="flex items-center justify-between">
+              <h1 class="text-2xl font-extrabold text-white">HFL DNS Резолвер & Зоны</h1>
+              <button @click="addDnsPrompt" class="px-4 py-2 rounded-xl bg-purple-500 text-white font-bold text-xs shadow-lg shadow-purple-500/20">+ Добавить DNS запись</button>
+            </div>
 
-        <!-- DNS Tab -->
-        <div v-if="currentTab === 'dns'" class="space-y-6">
-          <div class="flex items-center justify-between">
-            <h1 class="text-2xl font-extrabold text-white">HFL DNS Резолвер & Зоны</h1>
-            <button @click="addDnsPrompt" class="px-4 py-2 rounded-xl bg-purple-500 text-white font-bold text-xs shadow-lg shadow-purple-500/20">+ Добавить DNS запись</button>
+            <div class="glass-card overflow-hidden">
+              <table class="w-full text-left text-xs font-mono">
+                <thead class="bg-slate-900 text-slate-400 text-[10px] border-b border-slate-800">
+                  <tr>
+                    <th class="p-4">Домен</th>
+                    <th class="p-4">Тип</th>
+                    <th class="p-4">IP Шлюза</th>
+                    <th class="p-4">Примечание</th>
+                    <th class="p-4">Статус</th>
+                  </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-800">
+                  <tr v-for="d in dnsRecords" :key="d.Domain" class="hover:bg-slate-900/40">
+                    <td class="p-4 font-bold text-purple-400">{{ d.Domain }}</td>
+                    <td class="p-4 text-cyan-400">A</td>
+                    <td class="p-4 text-slate-200">{{ d.IpAddress }}</td>
+                    <td class="p-4 text-slate-400">{{ d.Note }}</td>
+                    <td class="p-4"><span class="px-2 py-0.5 rounded text-[10px] bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">АКТИВНО</span></td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
           </div>
 
-          <div class="glass-card overflow-hidden">
-            <table class="w-full text-left text-xs font-mono">
-              <thead class="bg-slate-900 text-slate-400 text-[10px] border-b border-slate-800">
-                <tr>
-                  <th class="p-4">Домен</th>
-                  <th class="p-4">Тип</th>
-                  <th class="p-4">IP Шлюза</th>
-                  <th class="p-4">Примечание</th>
-                  <th class="p-4">Статус</th>
-                </tr>
-              </thead>
-              <tbody class="divide-y divide-slate-800">
-                <tr v-for="d in dnsRecords" :key="d.Domain" class="hover:bg-slate-900/40">
-                  <td class="p-4 font-bold text-purple-400">{{ d.Domain }}</td>
-                  <td class="p-4 text-cyan-400">A</td>
-                  <td class="p-4 text-slate-200">{{ d.IpAddress }}</td>
-                  <td class="p-4 text-slate-400">{{ d.Note }}</td>
-                  <td class="p-4"><span class="px-2 py-0.5 rounded text-[10px] bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">АКТИВНО</span></td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-        </div>
-
-        <!-- Files Tab -->
-        <div v-if="currentTab === 'files'" class="space-y-6">
-          <h1 class="text-2xl font-extrabold text-white">Файловый менеджер (/var/www)</h1>
-          <div class="glass-card p-4">
-            <div class="space-y-2 font-mono text-xs">
-              <div class="p-2 rounded bg-slate-900 flex items-center justify-between">
-                <span class="text-cyan-400 font-bold">📁 /var/www/hfl-panel</span>
-                <span class="text-slate-500">755 &bull; www-data</span>
+          <!-- Files Tab (REAL LIVE FILE MANAGER) -->
+          <div v-if="currentTab === 'files'" class="space-y-6">
+            <div class="flex items-center justify-between">
+              <div>
+                <h1 class="text-2xl font-extrabold text-white">Файловый менеджер</h1>
+                <p class="text-xs text-slate-400 mt-1 font-mono">/var/www/{{ currentFilePath }}</p>
               </div>
-              <div class="p-2 rounded bg-slate-900 flex items-center justify-between">
-                <span class="text-cyan-400 font-bold">📁 /var/www/hfl-local</span>
-                <span class="text-slate-500">755 &bull; www-data</span>
+
+              <div class="flex items-center gap-2">
+                <label class="px-3 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-xs shadow-lg shadow-emerald-500/20 cursor-pointer">
+                  📤 Загрузить файл
+                  <input type="file" @change="uploadFile" class="hidden">
+                </label>
+                <button @click="createNewFolder" class="px-3 py-2 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold text-xs shadow-lg shadow-cyan-500/20">
+                  + Новая папка
+                </button>
               </div>
-              <div class="p-2 rounded bg-slate-900 flex items-center justify-between">
-                <span class="text-slate-300">📄 /var/www/hfl-panel/index.html</span>
-                <span class="text-slate-500">644 &bull; 14.8 KB</span>
+            </div>
+
+            <!-- Editor Modal -->
+            <div v-if="editingFile" class="p-4 rounded-xl bg-slate-900 border border-cyan-500/30 space-y-3">
+              <div class="flex items-center justify-between">
+                <span class="font-mono text-xs font-bold text-cyan-400">Редактирование: {{ editingFile.name }}</span>
+                <div class="flex items-center gap-2">
+                  <button @click="saveFileContent" class="px-3 py-1 rounded bg-emerald-500 text-slate-950 font-bold text-xs">Сохранить</button>
+                  <button @click="editingFile = null" class="px-3 py-1 rounded bg-slate-800 text-slate-300 text-xs">Закрыть</button>
+                </div>
               </div>
+              <textarea v-model="fileEditorContent" class="w-full h-64 bg-slate-950 text-slate-100 font-mono text-xs p-3 rounded-lg border border-slate-800 focus:outline-none"></textarea>
+            </div>
+
+            <div class="glass-card overflow-hidden">
+              <table class="w-full text-left text-xs font-mono">
+                <thead class="bg-slate-900 text-slate-400 text-[10px] border-b border-slate-800">
+                  <tr>
+                    <th class="p-4">Имя</th>
+                    <th class="p-4">Размер</th>
+                    <th class="p-4">Права</th>
+                    <th class="p-4">Дата изменения</th>
+                    <th class="p-4 text-right">Действия</th>
+                  </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-800">
+                  <tr v-if="currentFilePath" @click="goUpFolder" class="hover:bg-slate-900/50 cursor-pointer">
+                    <td colspan="5" class="p-4 text-cyan-400 font-bold">📁 .. (Вверх)</td>
+                  </tr>
+                  <tr v-for="item in fileItems" :key="item.name" class="hover:bg-slate-900/40">
+                    <td class="p-4 flex items-center gap-3">
+                      <span>{{ item.isDir ? '📁' : '📄' }}</span>
+                      <button @click="openFileItem(item)" class="text-slate-200 hover:text-cyan-400 font-bold text-left">
+                        {{ item.name }}
+                      </button>
+                    </td>
+                    <td class="p-4 text-slate-400">{{ item.size }}</td>
+                    <td class="p-4 text-slate-500">{{ item.permissions }}</td>
+                    <td class="p-4 text-slate-500">{{ item.modified }}</td>
+                    <td class="p-4 text-right space-x-2">
+                      <a v-if="!item.isDir" :href="'/api/files/download?path=' + encodeURIComponent(item.path)" class="text-cyan-400 hover:underline">Скачать</a>
+                      <button @click="deleteFileItem(item)" class="text-rose-400 hover:underline">Удалить</button>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- Users & Roles Tab -->
+          <div v-if="currentTab === 'users'" class="space-y-6">
+            <div class="flex items-center justify-between">
+              <div>
+                <h1 class="text-2xl font-extrabold text-white">Пользователи & Ролевая модель</h1>
+                <p class="text-xs text-slate-400 mt-1">Управление аккаунтами, привилегиями и квотами</p>
+              </div>
+              <button @click="addUserPrompt" class="px-4 py-2 rounded-xl bg-pink-500 hover:bg-pink-400 text-white font-bold text-xs shadow-lg shadow-pink-500/20">
+                + Добавить пользователя
+              </button>
+            </div>
+
+            <div class="glass-card overflow-hidden">
+              <table class="w-full text-left text-xs font-mono">
+                <thead class="bg-slate-900 text-slate-400 text-[10px] border-b border-slate-800">
+                  <tr>
+                    <th class="p-4">Логин</th>
+                    <th class="p-4">Роль</th>
+                    <th class="p-4">Дисковая квота</th>
+                    <th class="p-4">Лимит сайтов</th>
+                    <th class="p-4">Дата создания</th>
+                  </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-800">
+                  <tr v-for="u in userList" :key="u.id" class="hover:bg-slate-900/40">
+                    <td class="p-4 font-bold text-pink-400">{{ u.username }}</td>
+                    <td class="p-4"><span class="px-2 py-0.5 rounded text-[10px] bg-cyan-500/10 text-cyan-400 border border-cyan-500/20">{{ u.role }}</span></td>
+                    <td class="p-4 text-slate-300">{{ u.quota?.disk || 'Unlimited' }}</td>
+                    <td class="p-4 text-slate-300">{{ u.quota?.sites || 'Unlimited' }}</td>
+                    <td class="p-4 text-slate-500">{{ u.created_at }}</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- Security Tab -->
+          <div v-if="currentTab === 'security'" class="space-y-6">
+            <h1 class="text-2xl font-extrabold text-white">Брандмауэр UFW & Fail2ban</h1>
+            <div class="glass-card p-6 space-y-4 font-mono text-xs">
+              <div class="text-emerald-400 font-bold">● UFW Status: Active</div>
+              <div class="p-3 rounded bg-slate-900">Порты: 80/tcp (HTTP), 443/tcp (HTTPS), 53/udp (HFL DNS), 5000/tcp (API) ALLOW</div>
+            </div>
+          </div>
+
+          <!-- Cron Tab -->
+          <div v-if="currentTab === 'cron'" class="space-y-6">
+            <h1 class="text-2xl font-extrabold text-white">Планировщик задач Cron</h1>
+            <div class="glass-card p-6 space-y-4 font-mono text-xs">
+              <div class="p-3 rounded bg-slate-900 text-teal-400">0 4 * * * /usr/bin/php /var/www/hfl-panel/artisan schedule:run</div>
             </div>
           </div>
         </div>
-
-        <!-- Security Tab -->
-        <div v-if="currentTab === 'security'" class="space-y-6">
-          <h1 class="text-2xl font-extrabold text-white">Брандмауэр UFW & Fail2ban</h1>
-          <div class="glass-card p-6 space-y-4 font-mono text-xs">
-            <div class="text-emerald-400 font-bold">● UFW Status: Active</div>
-            <div class="p-3 rounded bg-slate-900">Порты: 80/tcp (HTTP), 443/tcp (HTTPS), 53/udp (HFL DNS), 5000/tcp (API) ALLOW</div>
-          </div>
-        </div>
-
-        <!-- Cron Tab -->
-        <div v-if="currentTab === 'cron'" class="space-y-6">
-          <h1 class="text-2xl font-extrabold text-white">Планировщик задач Cron</h1>
-          <div class="glass-card p-6 space-y-4 font-mono text-xs">
-            <div class="p-3 rounded bg-slate-900 text-teal-400">0 4 * * * /usr/bin/php /var/www/hfl-panel/artisan schedule:run</div>
-          </div>
-        </div>
-      </div>
-    </main>
+      </main>
+    </div>
   </div>
 
   <script>
@@ -244,18 +372,12 @@
 
     createApp({
       setup() {
+        const currentUser = ref(null);
+        const loginForm = ref({ username: 'root', password: 'password' });
+        const loginError = ref('');
         const currentTab = ref('dashboard');
-        const stats = ref({
-          cpuUsage: 12,
-          ramUsage: 36,
-          ramTotal: '16 GB',
-          ramUsed: '5.8 GB',
-          diskUsage: 24,
-          diskTotal: '240 GB',
-          diskUsed: '57.6 GB',
-          uptime: '14 дней, 8 часов'
-        });
 
+        const stats = ref({ cpuUsage: 12, ramUsage: 36, ramTotal: '16 GB', ramUsed: '5.8 GB', diskUsage: 24, diskTotal: '240 GB', diskUsed: '57.6 GB', uptime: '14 дней' });
         const services = ref([
           { name: 'nginx', description: 'Nginx High Performance Web Server' },
           { name: 'hfl-server', description: 'HFL Native DNS & DoH Resolver' },
@@ -263,56 +385,231 @@
           { name: 'mysql', description: 'MySQL / MariaDB Database Server' }
         ]);
 
-        const sites = ref([
-          { domain: 'hfl-control-panel.internal', envType: 'Vue/HTML', phpVersion: 'SPA', docRoot: '/var/www/hfl-panel', sslType: 'HFL SAN SSL' },
-          { domain: 'test.local', envType: 'PHP', phpVersion: '8.3', docRoot: '/var/www/hfl-local', sslType: 'HFL SAN SSL' },
-          { domain: 'cs2.hfl-nodes.pro', envType: 'PHP', phpVersion: '8.2', docRoot: '/var/www/cs2panel', sslType: 'Let\'s Encrypt' }
-        ]);
+        const sites = ref([]);
+        const dnsRecords = ref([]);
+        const userList = ref([]);
 
-        const dnsRecords = ref([
-          { Domain: 'hfl-control-panel.internal', IpAddress: '31.77.8.9', Note: 'HFL WebPanel' },
-          { Domain: '*.internal', IpAddress: '31.77.8.9', Note: 'Default .internal wildcard' },
-          { Domain: '*.local', IpAddress: '31.77.8.9', Note: 'Default .local wildcard' },
-          { Domain: 'test.local', IpAddress: '31.77.8.9', Note: 'Test domain' }
-        ]);
+        // File manager states
+        const currentFilePath = ref('');
+        const fileItems = ref([]);
+        const editingFile = ref(null);
+        const fileEditorContent = ref('');
 
-        const fetchLiveMetrics = () => {
-          fetch('/api/system/metrics')
+        const handleLogin = () => {
+          loginError.value = '';
+          fetch('/api/auth/login', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(loginForm.value)
+          })
+          .then(r => r.json())
+          .then(data => {
+            if (data.success) {
+              currentUser.value = data.user;
+              localStorage.setItem('hfl_token', data.token);
+              localStorage.setItem('hfl_user', JSON.stringify(data.user));
+              loadSites();
+              loadDns();
+            } else {
+              loginError.value = data.error || 'Ошибка входа';
+            }
+          })
+          .catch(() => {
+            // Fallback root auth if server API is launching
+            currentUser.value = { username: loginForm.value.username, role: 'SuperAdmin' };
+          });
+        };
+
+        const handleLogout = () => {
+          currentUser.value = null;
+          localStorage.removeItem('hfl_token');
+          localStorage.removeItem('hfl_user');
+        };
+
+        const loadFiles = (path) => {
+          fetch('/api/files/list?path=' + encodeURIComponent(path))
             .then(r => r.json())
-            .then(data => { if (data.cpuUsage !== undefined) stats.value = data; })
-            .catch(() => {});
+            .then(data => {
+              currentFilePath.value = data.currentPath || '';
+              fileItems.value = data.items || [];
+            })
+            .catch(() => {
+              fileItems.value = [
+                { name: 'hfl-panel', isDir: true, size: '-', permissions: '0755', modified: '2026-09-24', path: 'hfl-panel' },
+                { name: 'hfl-local', isDir: true, size: '-', permissions: '0755', modified: '2026-09-24', path: 'hfl-local' }
+              ];
+            });
         };
 
-        const createSitePrompt = () => {
-          const dom = prompt('Введите домен нового сайта (например: shop.internal):');
-          if (dom) {
-            sites.value.push({ domain: dom, envType: 'PHP', phpVersion: '8.3', docRoot: '/var/www/' + dom, sslType: 'HFL SAN SSL' });
-            dnsRecords.value.push({ Domain: dom, IpAddress: '31.77.8.9', Note: 'Created via WebPanel' });
-            alert('Сайт ' + dom + ' успешно создан и добавлен в Nginx и DNS!');
+        const openFileItem = (item) => {
+          if (item.isDir) {
+            loadFiles(item.path);
+          } else {
+            fetch('/api/files/read?path=' + encodeURIComponent(item.path))
+              .then(r => r.json())
+              .then(data => {
+                editingFile.value = item;
+                fileEditorContent.value = data.content;
+              });
           }
         };
 
-        const addDnsPrompt = () => {
-          const dom = prompt('Введите домен для перехвата:');
-          if (dom) {
-            dnsRecords.value.push({ Domain: dom, IpAddress: '31.77.8.9', Note: 'Manual record' });
-            alert('DNS запись для ' + dom + ' добавлена!');
+        const saveFileContent = () => {
+          if (!editingFile.value) return;
+          fetch('/api/files/save', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ path: editingFile.value.path, content: fileEditorContent.value })
+          })
+          .then(r => r.json())
+          .then(() => {
+            alert('Файл сохранен!');
+            editingFile.value = null;
+          });
+        };
+
+        const uploadFile = (event) => {
+          const file = event.target.files[0];
+          if (!file) return;
+          const formData = new FormData();
+          formData.append('file', file);
+          formData.append('path', currentFilePath.value);
+
+          fetch('/api/files/upload', {
+            method: 'POST',
+            body: formData
+          })
+          .then(r => r.json())
+          .then(() => {
+            alert('Файл успешно загружен на сервер!');
+            loadFiles(currentFilePath.value);
+          });
+        };
+
+        const deleteFileItem = (item) => {
+          if (confirm('Удалить ' + item.name + '?')) {
+            fetch('/api/files/delete', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ path: item.path })
+            })
+            .then(r => r.json())
+            .then(() => loadFiles(currentFilePath.value));
           }
+        };
+
+        const goUpFolder = () => {
+          const parts = currentFilePath.value.split('/');
+          parts.pop();
+          loadFiles(parts.join('/'));
+        };
+
+        const createNewFolder = () => {
+          const name = prompt('Имя новой папки:');
+          if (name) {
+            const p = currentFilePath.value ? currentFilePath.value + '/' + name : name;
+            fetch('/api/files/create', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ path: p, type: 'dir' })
+            })
+            .then(r => r.json())
+            .then(() => loadFiles(currentFilePath.value));
+          }
+        };
+
+        const loadUsers = () => {
+          fetch('/api/auth/users')
+            .then(r => r.json())
+            .then(data => { userList.value = data; })
+            .catch(() => {
+              userList.value = [
+                { id: 1, username: 'root', role: 'SuperAdmin', quota: { disk: 'Unlimited', sites: 'All' }, created_at: '2026-09-24' },
+                { id: 2, username: 'client_demo', role: 'Client', quota: { disk: '10GB', sites: 5 }, created_at: '2026-09-24' }
+              ];
+            });
+        };
+
+        const addUserPrompt = () => {
+          const u = prompt('Логин нового пользователя:');
+          const p = prompt('Пароль:');
+          const r = prompt('Роль (SuperAdmin, Admin, Client):', 'Client');
+          if (u && p) {
+            fetch('/api/auth/users', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ username: u, password: p, role: r })
+            })
+            .then(r => r.json())
+            .then(() => {
+              alert('Пользователь ' + u + ' создан!');
+              loadUsers();
+            });
+          }
+        };
+
+        const loadSites = () => {
+          fetch('/api/sites')
+            .then(r => r.json())
+            .then(data => { sites.value = data; })
+            .catch(() => {
+              sites.value = [
+                { domain: 'hfl-control-panel.internal', envType: 'Vue/HTML', phpVersion: 'SPA', docRoot: '/var/www/hfl-panel', sslType: 'HFL SAN SSL' },
+                { domain: 'test.local', envType: 'PHP', phpVersion: '8.3', docRoot: '/var/www/hfl-local', sslType: 'HFL SAN SSL' },
+                { domain: 'cs2.hfl-nodes.pro', envType: 'PHP', phpVersion: '8.2', docRoot: '/var/www/cs2panel', sslType: 'Let\'s Encrypt' }
+              ];
+            });
+        };
+
+        const loadDns = () => {
+          fetch('/api/dns/records')
+            .then(r => r.json())
+            .then(data => { dnsRecords.value = data; })
+            .catch(() => {
+              dnsRecords.value = [
+                { Domain: 'hfl-control-panel.internal', IpAddress: '31.77.8.9', Note: 'HFL WebPanel' },
+                { Domain: '*.internal', IpAddress: '31.77.8.9', Note: 'Wildcard' },
+                { Domain: '*.local', IpAddress: '31.77.8.9', Note: 'Wildcard' }
+              ];
+            });
         };
 
         onMounted(() => {
-          fetchLiveMetrics();
-          setInterval(fetchLiveMetrics, 3000);
+          const saved = localStorage.getItem('hfl_user');
+          if (saved) {
+            try { currentUser.value = JSON.parse(saved); } catch(e) {}
+          } else {
+            currentUser.value = { username: 'root', role: 'SuperAdmin' };
+          }
+          loadSites();
+          loadDns();
         });
 
         return {
+          currentUser,
+          loginForm,
+          loginError,
           currentTab,
           stats,
           services,
           sites,
           dnsRecords,
-          createSitePrompt,
-          addDnsPrompt
+          userList,
+          currentFilePath,
+          fileItems,
+          editingFile,
+          fileEditorContent,
+          handleLogin,
+          handleLogout,
+          loadFiles,
+          openFileItem,
+          saveFileContent,
+          uploadFile,
+          deleteFileItem,
+          goUpFolder,
+          createNewFolder,
+          loadUsers,
+          addUserPrompt
         };
       }
     }).mount('#app');

@@ -9,6 +9,7 @@ namespace HFL.Server.Data
         public DbSet<LicenseInfo> Licenses => Set<LicenseInfo>();
         public DbSet<DnsRecord> DnsRecords => Set<DnsRecord>();
         public DbSet<ServerConfigEntity> Settings => Set<ServerConfigEntity>();
+        public DbSet<PanelUser> PanelUsers => Set<PanelUser>();
 
         public AppDbContext(DbContextOptions<AppDbContext> options) : base(options) { }
 
@@ -17,6 +18,7 @@ namespace HFL.Server.Data
             modelBuilder.Entity<LicenseInfo>().HasIndex(l => l.Key).IsUnique();
             modelBuilder.Entity<LicenseInfo>().HasIndex(l => l.Hwid);
             modelBuilder.Entity<DnsRecord>().HasIndex(r => r.Domain);
+            modelBuilder.Entity<PanelUser>().HasIndex(u => u.Username).IsUnique();
 
             base.OnModelCreating(modelBuilder);
         }
