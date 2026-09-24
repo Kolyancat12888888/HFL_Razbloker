@@ -35,6 +35,7 @@ namespace HFL.Server.Services.Dns
 
             // Parse Question Domain Name and QType
             string queriedDomain = ExtractDomainName(queryBuffer, 12, out int questionEndOffset, out ushort qtype);
+            queriedDomain = queriedDomain.TrimEnd('.').ToLowerInvariant();
 
             if (!string.IsNullOrEmpty(queriedDomain))
             {
@@ -49,7 +50,7 @@ namespace HFL.Server.Services.Dns
                 {
                     string recDom = r.Domain.TrimEnd('.').ToLowerInvariant();
                     if (recDom == queriedDomain) return true;
-                    if (recDom.StartsWith("*.") && queriedDomain.EndsWith(recDom.Substring(1))) return true;
+                    if (recDom.StartsWith("*.") && (queriedDomain.EndsWith(recDom.Substring(1)) || queriedDomain == recDom.Substring(2))) return true;
                     return false;
                 });
 
