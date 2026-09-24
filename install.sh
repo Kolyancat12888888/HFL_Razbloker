@@ -49,7 +49,23 @@ dotnet publish src/HFL.Server/HFL.Server.csproj -c Release -r linux-x64 --self-c
 
 mkdir -p /opt/hfl-server/data
 
-# 4. Create systemd service
+# 4. Deploy Nginx diagnostics site for *.local / *.internal
+echo "🌐 Настройка Nginx для *.local..."
+mkdir -p /var/www/hfl-local
+cp deploy/nginx/index.html /var/www/hfl-local/index.html 2>/dev/null || true
+
+# Generate snakeoil SSL cert if missing
+if [ ! -f /etc/ssl/certs/ssl-cert-snakeoil.pem ]; then
+    apt-get install -y ssl-cert 2>/dev/null || openssl req -x509 -nodes -days 3650 -newkey rsa:2048 -keyout /etc/ssl/private/ssl-cert-snakeoil.key -out /etc/ssl/certs/ssl-cert-snakeoil.pem -subj "/CN=*.local" 2>/dev/null || true
+fi
+
+if [ -d /etc/nginx/sites-available ]; then
+    cp deploy/nginx/hfl-local.conf /etc/nginx/sites-available/hfl-local.conf
+    ln -sf /etc/nginx/sites-available/hfl-local.conf /etc/nginx/sites-enabled/hfl-local.conf
+    nginx -t && systemctl reload nginx 2>/dev/null || true
+fi
+
+# 5. Create systemd service
 cat << 'EOF' > /etc/systemd/system/hfl-server.service
 [Unit]
 Description=HFL Razbloker Enterprise Server (DoH + DNS + Telegram Bot + License API)
