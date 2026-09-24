@@ -140,7 +140,7 @@ namespace HFL.Client.Services
             _cts = null;
 
             _zapret.Stop();
-            _dns.RestoreDhcpDns();
+            _dns.DisableTransparentDns();
 
             _isRunning = false;
             ActiveStrategyName = "Отключено";

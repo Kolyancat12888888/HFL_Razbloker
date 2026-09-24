@@ -1,7 +1,6 @@
 using System;
 using System.Diagnostics;
 using System.IO;
-using System.Threading.Tasks;
 
 namespace HFL.Client.Services
 {
@@ -37,12 +36,13 @@ namespace HFL.Client.Services
             }
             else
             {
-                // Proven battle-tested strategies against Russian TSPU/DPI filters
+                // Transparent packet-level filtering: includes DNS (53), Web (80,443), Discord (50000-50050)
+                // Windows network adapter settings remain 100% UNTOUCHED!
                 switch (strategyIndex)
                 {
                     case 0:
-                        // Ultimate Strategy: YouTube 4K 60FPS + Discord Gateway & Voice UDP 50000-50050
-                        args = $"--wf-tcp=80,443 --wf-udp=443,50000-50050 " +
+                        // Ultimate Strategy: YouTube 4K 60FPS + Discord Gateway & Voice + In-flight DNS Protection
+                        args = $"--wf-tcp=53,80,443 --wf-udp=53,443,50000-50050 " +
                                $"--filter-udp=443 {(File.Exists(listPath) ? $"--hostlist=\"{listPath}\"" : "")} --dpi-desync=fake --dpi-desync-repeats=6 {(File.Exists(quicFake) ? $"--dpi-desync-fake-quic=\"{quicFake}\"" : "")} --newfilter " +
                                $"--filter-udp=50000-50050 --dpi-desync=fake --dpi-desync-any-protocol --dpi-desync-cutoff=d3 --newfilter " +
                                $"--filter-tcp=80,443 {(File.Exists(listPath) ? $"--hostlist=\"{listPath}\"" : "")} --dpi-desync=fake,split2 --dpi-desync-autottl=2 --dpi-desync-fooling=md5sig {(File.Exists(tlsFake) ? $"--dpi-desync-fake-tls=\"{tlsFake}\"" : "")}";
@@ -50,7 +50,7 @@ namespace HFL.Client.Services
 
                     case 1:
                         // Disorder + BadSeq Strategy
-                        args = $"--wf-tcp=80,443 --wf-udp=443,50000-50050 " +
+                        args = $"--wf-tcp=53,80,443 --wf-udp=53,443,50000-50050 " +
                                $"--filter-udp=443 --dpi-desync=fake --dpi-desync-repeats=6 --newfilter " +
                                $"--filter-udp=50000-50050 --dpi-desync=fake --dpi-desync-any-protocol --dpi-desync-cutoff=d3 --newfilter " +
                                $"--filter-tcp=80,443 {(File.Exists(listPath) ? $"--hostlist=\"{listPath}\"" : "")} --dpi-desync=disorder2 --dpi-desync-split-pos=1 --dpi-desync-fooling=badseq";
@@ -58,7 +58,7 @@ namespace HFL.Client.Services
 
                     default:
                         // Fake + Syndata Strategy
-                        args = $"--wf-tcp=80,443 --wf-udp=443,50000-50050 " +
+                        args = $"--wf-tcp=53,80,443 --wf-udp=53,443,50000-50050 " +
                                $"--filter-udp=443 --dpi-desync=fake --newfilter " +
                                $"--filter-udp=50000-50050 --dpi-desync=fake --dpi-desync-cutoff=d3 --newfilter " +
                                $"--filter-tcp=80,443 --dpi-desync=fake,syndata --dpi-desync-repeats=8 --dpi-desync-fooling=badsum";
@@ -105,7 +105,6 @@ namespace HFL.Client.Services
                 _winwsProcess = null;
             }
 
-            // Clean up any stray winws instances
             try
             {
                 foreach (var p in Process.GetProcessesByName("winws"))
