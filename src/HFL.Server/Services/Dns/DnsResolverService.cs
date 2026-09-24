@@ -33,8 +33,8 @@ namespace HFL.Server.Services.Dns
             if (queryBuffer == null || queryBuffer.Length < 12)
                 return Array.Empty<byte>();
 
-            // Parse Question Domain Name from standard RFC 1035 DNS packet
-            string queriedDomain = ExtractDomainName(queryBuffer, 12, out int questionEndOffset);
+            // Parse Question Domain Name and QType
+            string queriedDomain = ExtractDomainName(queryBuffer, 12, out int questionEndOffset, out ushort qtype);
 
             if (!string.IsNullOrEmpty(queriedDomain))
             {
@@ -61,10 +61,10 @@ namespace HFL.Server.Services.Dns
 
                     if (!IPAddress.TryParse(targetIpStr, out var targetIp))
                     {
-                        targetIp = IPAddress.Loopback;
+                        targetIp = IPAddress.Parse("31.77.8.9");
                     }
 
-                    return BuildAResponsePacket(queryBuffer, questionEndOffset, targetIp, matchedRecord.Ttl > 0 ? matchedRecord.Ttl : 60);
+                    return BuildResponsePacket(queryBuffer, questionEndOffset, qtype, targetIp, matchedRecord.Ttl > 0 ? matchedRecord.Ttl : 60);
                 }
 
                 // If not an internal domain, forward directly to Cloudflare DoH (1.1.1.1)
@@ -98,8 +98,7 @@ namespace HFL.Server.Services.Dns
                 await udpClient.SendAsync(queryBuffer, queryBuffer.Length, new IPEndPoint(IPAddress.Parse("1.1.1.1"), 53));
                 
                 using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(2));
-                var receiveTask = udpClient.ReceiveAsync(cts.Token);
-                var res = await receiveTask;
+                var res = await udpClient.ReceiveAsync(cts.Token);
                 return res.Buffer;
             }
             catch
@@ -108,10 +107,11 @@ namespace HFL.Server.Services.Dns
             }
         }
 
-        private static string ExtractDomainName(byte[] buffer, int offset, out int nextOffset)
+        private static string ExtractDomainName(byte[] buffer, int offset, out int nextOffset, out ushort qtype)
         {
             var sb = new StringBuilder();
             nextOffset = offset;
+            qtype = 1; // default A
 
             while (nextOffset < buffer.Length)
             {
@@ -132,32 +132,54 @@ namespace HFL.Server.Services.Dns
                 nextOffset += len;
             }
 
-            // Skip QTYPE (2 bytes) and QCLASS (2 bytes)
-            nextOffset += 4;
+            if (nextOffset + 4 <= buffer.Length)
+            {
+                qtype = (ushort)((buffer[nextOffset] << 8) | buffer[nextOffset + 1]);
+                nextOffset += 4; // Skip QTYPE (2 bytes) and QCLASS (2 bytes)
+            }
+
             return sb.ToString().ToLowerInvariant();
         }
 
-        private static byte[] BuildAResponsePacket(byte[] queryBuffer, int questionEndOffset, IPAddress ip, int ttl)
+        private static byte[] BuildResponsePacket(byte[] queryBuffer, int questionLength, ushort qtype, IPAddress ip, int ttl)
         {
-            byte[] ipBytes = ip.GetAddressBytes();
-            if (ipBytes.Length != 4) // IPv4 only for A record
-                ipBytes = new byte[] { 127, 0, 0, 1 };
+            // If query is for AAAA (IPv6), return NOERROR with 0 answers so resolver immediately uses A record
+            if (qtype == 28) // AAAA
+            {
+                byte[] noAnswers = new byte[questionLength];
+                Array.Copy(queryBuffer, 0, noAnswers, 0, questionLength);
+                noAnswers[2] = 0x85; // QR=1, AA=1, RD=1
+                noAnswers[3] = 0x80; // RA=1, RCODE=0
+                noAnswers[6] = 0x00; // ANCOUNT = 0
+                noAnswers[7] = 0x00;
+                return noAnswers;
+            }
 
-            int questionLength = Math.Min(questionEndOffset, queryBuffer.Length);
-            byte[] response = new byte[questionLength + 16];
+            byte[] ipBytes = ip.GetAddressBytes();
+            if (ipBytes.Length != 4)
+                ipBytes = new byte[] { 31, 77, 8, 9 };
+
+            int length = Math.Min(questionLength, queryBuffer.Length);
+            byte[] response = new byte[length + 16];
 
             // Copy Header & Question
-            Array.Copy(queryBuffer, 0, response, 0, questionLength);
+            Array.Copy(queryBuffer, 0, response, 0, length);
 
-            // Set Flags: Standard query response, No error (0x8180)
-            response[2] = 0x81;
+            // Set Flags: Standard query response, Authoritative Answer, Recursion Desired & Available (0x8580)
+            response[2] = 0x85;
             response[3] = 0x80;
 
-            // Set Answer Count = 1
+            // Set Questions = 1, Answers = 1, Authority = 0, Additional = 0
+            response[4] = 0x00;
+            response[5] = 0x01;
             response[6] = 0x00;
             response[7] = 0x01;
+            response[8] = 0x00;
+            response[9] = 0x00;
+            response[10] = 0x00;
+            response[11] = 0x00;
 
-            int offset = questionLength;
+            int offset = length;
 
             // Answer Name Pointer to Question (0xC00C)
             response[offset++] = 0xC0;
