@@ -46,7 +46,7 @@ namespace HFL.Client
             }
 
             AppendLog($"🔍 Проверка лицензии: {settings.LicenseKey}...");
-            var res = await _licenseService.ValidateAsync(settings.ServerApiUrl, settings.LicenseKey);
+            var res = await _licenseService.ValidateAsync(settings.LicenseKey);
 
             if (res.Valid)
             {

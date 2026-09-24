@@ -7,7 +7,6 @@ namespace HFL.Client.Services
     public class AppSettings
     {
         public string LicenseKey { get; set; } = string.Empty;
-        public string ServerApiUrl { get; set; } = "http://localhost:5000";
         public string SelectedMode { get; set; } = "Auto"; // "Auto", "Zapret", "3XUI", "DNS"
         public bool DirectRuRouting { get; set; } = true;
         public string CustomDohUrl { get; set; } = "";

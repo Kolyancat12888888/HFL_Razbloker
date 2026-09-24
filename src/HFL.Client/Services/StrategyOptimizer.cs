@@ -50,7 +50,7 @@ namespace HFL.Client.Services
             // Start Transparent DNS Redirection to our server DoH (without touching Windows network adapters!)
             string dohUrl = !string.IsNullOrEmpty(settings.CustomDohUrl)
                 ? settings.CustomDohUrl
-                : _license.CurrentLicense?.ServerConfig?.DohUrl ?? $"{settings.ServerApiUrl.TrimEnd('/')}/dns-query";
+                : _license.CurrentLicense?.ServerConfig?.DohUrl ?? $"{LicenseClientService.ServerEndpoint}/dns-query";
 
             if (!string.IsNullOrEmpty(dohUrl))
             {

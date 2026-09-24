@@ -1,7 +1,6 @@
 using System;
 using System.Net.Http;
 using System.Net.Http.Json;
-using System.Text.Json;
 using System.Threading.Tasks;
 using HFL.Core.Models;
 using HFL.Core.Security;
@@ -10,6 +9,9 @@ namespace HFL.Client.Services
 {
     public class LicenseClientService
     {
+        // Hardcoded secure enterprise server endpoint (protected against spoofing)
+        public const string ServerEndpoint = "http://31.77.8.9:5000";
+
         private readonly HttpClient _http;
         public ValidateResponse? CurrentLicense { get; private set; }
 
@@ -18,7 +20,7 @@ namespace HFL.Client.Services
             _http = new HttpClient { Timeout = TimeSpan.FromSeconds(6) };
         }
 
-        public async Task<ValidateResponse> ValidateAsync(string serverUrl, string key)
+        public async Task<ValidateResponse> ValidateAsync(string key)
         {
             if (string.IsNullOrWhiteSpace(key))
             {
@@ -26,7 +28,7 @@ namespace HFL.Client.Services
             }
 
             string hwid = HwidGenerator.GetHwid();
-            string endpoint = $"{serverUrl.TrimEnd('/')}/api/v1/license/validate";
+            string endpoint = $"{ServerEndpoint}/api/v1/license/validate";
 
             try
             {
@@ -61,7 +63,7 @@ namespace HFL.Client.Services
                 {
                     Valid = false,
                     Status = "connection_error",
-                    Message = $"Не удалось связаться с сервером лицензий: {ex.Message}"
+                    Message = $"Не удалось связаться с сервером авторизации: {ex.Message}"
                 };
             }
         }

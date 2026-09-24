@@ -2,7 +2,7 @@
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         Title="HFL Razbloker Enterprise — Активация" 
-        Height="420" Width="520"
+        Height="360" Width="500"
         WindowStartupLocation="CenterScreen"
         ResizeMode="NoResize"
         Background="#0B0F19"
@@ -35,9 +35,9 @@
         </Grid.RowDefinitions>
 
         <!-- Header -->
-        <StackPanel Grid.Row="0" Margin="0,0,0,20">
+        <StackPanel Grid.Row="0" Margin="0,0,0,16">
             <TextBlock Text="🛡️ HFL Razbloker Enterprise" FontSize="20" FontWeight="Bold" Foreground="#38BDF8"/>
-            <TextBlock Text="Для доступа к приложению введите ваш лицензионный ключ" FontSize="13" Foreground="#94A3B8" Margin="0,6,0,0"/>
+            <TextBlock Text="Для доступа к приложению введите ваш лицензионный ключ" FontSize="13" Foreground="#94A3B8" Margin="0,4,0,0"/>
         </StackPanel>
 
         <!-- Form -->
@@ -45,11 +45,8 @@
             <TextBlock Text="Лицензионный ключ (HFL-XXXX-XXXX-XXXX):" FontWeight="Medium" Margin="0,0,0,6" Foreground="#CBD5E1"/>
             <TextBox x:Name="KeyTextBox" Height="42" VerticalContentAlignment="Center" Padding="12,0" Background="#1E293B" Foreground="#38BDF8" BorderBrush="#334155" FontSize="14" FontFamily="Consolas" BorderThickness="1"/>
 
-            <TextBlock Text="Сервер лицензий API:" FontWeight="Medium" Margin="0,14,0,6" Foreground="#CBD5E1"/>
-            <TextBox x:Name="ServerUrlTextBox" Text="http://localhost:5000" Height="38" VerticalContentAlignment="Center" Padding="12,0" Background="#1E293B" Foreground="#F8FAFC" BorderBrush="#334155" FontSize="13" BorderThickness="1"/>
-
             <!-- HWID info -->
-            <Border Background="#131D2F" CornerRadius="6" Padding="12" Margin="0,16,0,0" BorderBrush="#1E293B" BorderThickness="1">
+            <Border Background="#131D2F" CornerRadius="6" Padding="12" Margin="0,14,0,0" BorderBrush="#1E293B" BorderThickness="1">
                 <Grid>
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="*"/>

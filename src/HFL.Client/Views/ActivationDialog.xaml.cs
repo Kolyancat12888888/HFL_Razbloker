@@ -17,14 +17,12 @@ namespace HFL.Client.Views
 
             var settings = ConfigService.Load();
             KeyTextBox.Text = settings.LicenseKey;
-            ServerUrlTextBox.Text = string.IsNullOrEmpty(settings.ServerApiUrl) ? "http://localhost:5000" : settings.ServerApiUrl;
             HwidText.Text = HwidGenerator.GetHwid();
         }
 
         private async void Activate_Click(object sender, RoutedEventArgs e)
         {
             string key = KeyTextBox.Text.Trim();
-            string serverUrl = ServerUrlTextBox.Text.Trim();
 
             if (string.IsNullOrEmpty(key))
             {
@@ -36,7 +34,7 @@ namespace HFL.Client.Views
             ActivateButton.Content = "⏳ Проверка ключа...";
             ErrorText.Text = "";
 
-            var result = await _licenseService.ValidateAsync(serverUrl, key);
+            var result = await _licenseService.ValidateAsync(key);
 
             ActivateButton.IsEnabled = true;
             ActivateButton.Content = "⚡ Активировать лицензию";
@@ -45,7 +43,6 @@ namespace HFL.Client.Views
             {
                 var settings = ConfigService.Load();
                 settings.LicenseKey = key;
-                settings.ServerApiUrl = serverUrl;
                 ConfigService.Save(settings);
 
                 IsActivated = true;
