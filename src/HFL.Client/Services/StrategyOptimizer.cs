@@ -11,6 +11,7 @@ namespace HFL.Client.Services
     {
         private readonly ZapretService _zapret;
         private readonly DnsClientService _dns;
+        private readonly TransparentDnsRedirector _transparentDns;
         private readonly LicenseClientService _license;
         private readonly HttpClient _probeHttp;
 
@@ -30,6 +31,7 @@ namespace HFL.Client.Services
         {
             _zapret = zapret;
             _dns = dns;
+            _transparentDns = new TransparentDnsRedirector();
             _license = license;
             _probeHttp = new HttpClient { Timeout = TimeSpan.FromSeconds(3) };
         }
@@ -41,15 +43,27 @@ namespace HFL.Client.Services
             _cts = new CancellationTokenSource();
             OnConnectionStateChanged?.Invoke(true);
 
-            Log("🚀 Запуск Zapret DPI Bypass («Швейцарские часы»)...");
+            Log("🚀 Запуск Zapret DPI Bypass + Серверный DNS («Швейцарские часы»)...");
 
             var token = _cts.Token;
+
+            // Start Transparent DNS Redirection to our server DoH (without touching Windows network adapters!)
+            string dohUrl = !string.IsNullOrEmpty(settings.CustomDohUrl)
+                ? settings.CustomDohUrl
+                : _license.CurrentLicense?.ServerConfig?.DohUrl ?? $"{settings.ServerApiUrl.TrimEnd('/')}/dns-query";
+
+            if (!string.IsNullOrEmpty(dohUrl))
+            {
+                Log($"🔒 Включение прозрачного перехвата DNS (Свой сервер: {dohUrl}). Настройки адаптеров не изменяются.");
+                _transparentDns.Start(dohUrl);
+                _dns.EnableTransparentDns();
+            }
 
             if (manualStrategyIndex >= 0)
             {
                 string name = manualStrategyIndex switch
                 {
-                    0 => "Zapret: YouTube + Discord 4K (Fake TLS/QUIC)",
+                    0 => "Zapret: YouTube 4K + Discord Voice",
                     1 => "Zapret: Disorder + BadSeq",
                     2 => "Zapret: Fake Repeats + AutoTTL",
                     3 => "Zapret: Discord Voice Fix",
@@ -82,7 +96,7 @@ namespace HFL.Client.Services
             {
                 CurrentLatencyMs = ping;
                 OnLatencyChanged?.Invoke(ping);
-                Log($"✅ Стратегия 1 успешно работает! Задержка: {ping} мс (Швейцарская точность)");
+                Log($"✅ Стратегия 1 успешно зафиксирована! Задержка: {ping} мс (Швейцарская точность)");
                 return;
             }
 
@@ -139,6 +153,7 @@ namespace HFL.Client.Services
             _cts?.Dispose();
             _cts = null;
 
+            _transparentDns.Stop();
             _zapret.Stop();
             _dns.DisableTransparentDns();
 
@@ -148,7 +163,7 @@ namespace HFL.Client.Services
             OnLatencyChanged?.Invoke(0);
             OnStrategyChanged?.Invoke("Отключено");
             OnConnectionStateChanged?.Invoke(false);
-            Log("⏹️ Zapret остановлен. Прямой трафик восстановлен.");
+            Log("⏹️ Zapret и DNS-перехват остановлены. Стандартная сеть восстановлена.");
         }
 
         private async Task<int> ProbeTargetAsync(string url)
