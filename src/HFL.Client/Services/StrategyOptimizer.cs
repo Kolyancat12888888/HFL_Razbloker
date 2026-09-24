@@ -43,7 +43,7 @@ namespace HFL.Client.Services
             _cts = new CancellationTokenSource();
             OnConnectionStateChanged?.Invoke(true);
 
-            Log("🚀 Запуск Zapret DPI Bypass + Серверный DNS («Швейцарские часы»)...");
+            Log("🚀 Запуск HFL Transparent DNS Resolver (Режим Чистого DNS)...");
 
             var token = _cts.Token;
 
@@ -54,31 +54,13 @@ namespace HFL.Client.Services
 
             if (!string.IsNullOrEmpty(dohUrl))
             {
-                Log($"🔒 Включение прозрачного перехвата DNS (Свой сервер: {dohUrl}). Настройки адаптеров не изменяются.");
+                Log($"🔒 Включение прозрачного перехвата DNS (Свой сервер: {dohUrl}). Домены .local/.internal активны.");
                 _transparentDns.Start(dohUrl);
                 _dns.EnableTransparentDns();
             }
 
-            if (manualStrategyIndex >= 0)
-            {
-                string name = manualStrategyIndex switch
-                {
-                    0 => "Zapret: YouTube 4K + Discord Voice",
-                    1 => "Zapret: Disorder + BadSeq",
-                    2 => "Zapret: Fake Repeats + AutoTTL",
-                    3 => "Zapret: Discord Voice Fix",
-                    _ => $"Zapret Профиль {manualStrategyIndex + 1}"
-                };
-
-                SetStrategy(name);
-                _zapret.Start(null, manualStrategyIndex);
-                Log($"⚡ Активирован выбранный профиль: {name}");
-            }
-            else
-            {
-                // Full Autonomous Auto Mode
-                await RunAutonomousFallbackLoopAsync(token);
-            }
+            SetStrategy("HFL Native DNS Mode");
+            Log("✅ HFL DNS активен. Запросы .local и .internal прозрачно направляются на сервер 31.77.8.9.");
 
             _ = MonitorHealthLoopAsync(token);
         }
