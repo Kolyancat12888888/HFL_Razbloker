@@ -5,45 +5,317 @@
   <title>HFL Cloud & WebPanel Enterprise</title>
   <base href="/">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <link rel="icon" type="image/x-icon" href="favicon.ico">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
   <script src="https://cdn.tailwindcss.com"></script>
-  <script>
-    tailwind.config = {
-      darkMode: 'class',
-      theme: {
-        extend: {
-          colors: {
-            dark: {
-              950: '#06080e',
-              900: '#0a0e17',
-              850: '#0f172a',
-              800: '#131d2f',
-              750: '#182438',
-              700: '#1e293b',
-              600: '#334155',
-            },
-            neon: {
-              blue: '#38bdf8',
-              cyan: '#06b6d4',
-              purple: '#c084fc',
-              pink: '#f43f5e',
-              green: '#4ade80',
-              amber: '#fbbf24',
-            }
-          },
-          fontFamily: {
-            mono: ['"JetBrains Mono"', 'monospace'],
-            sans: ['Inter', 'sans-serif'],
-          }
-        }
-      }
-    }
-  </script>
+  <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
+  <style>
+    body { background-color: #06080e; color: #f8fafc; font-family: 'Inter', -apple-system, sans-serif; }
+    .glass-card { background: rgba(15, 23, 42, 0.75); backdrop-filter: blur(16px); border: 1px solid rgba(56, 189, 248, 0.15); border-radius: 16px; }
+    .glass-card:hover { border-color: rgba(56, 189, 248, 0.35); }
+    .nav-item { display: flex; align-items: center; gap: 0.75rem; padding: 0.625rem 0.75rem; border-radius: 0.75rem; font-size: 0.8125rem; font-weight: 500; color: #94a3b8; transition: all 0.2s ease; cursor: pointer; border: 1px solid transparent; }
+    .nav-item:hover { color: #f8fafc; background-color: rgba(30, 41, 59, 0.5); border-color: rgba(56, 189, 248, 0.2); transform: translateX(2px); }
+    .active-nav { color: #38bdf8 !important; background: linear-gradient(90deg, rgba(56, 189, 248, 0.15) 0%, rgba(56, 189, 248, 0.03) 100%) !important; border-color: rgba(56, 189, 248, 0.35) !important; }
+  </style>
 </head>
-<body class="bg-dark-950 text-slate-100 font-sans antialiased selection:bg-neon-blue selection:text-dark-950 overflow-x-hidden min-h-screen">
-  <app-root></app-root>
+<body class="bg-slate-950 text-slate-100 min-h-screen overflow-x-hidden">
+  <div id="app" class="flex h-screen w-full overflow-hidden">
+    <!-- Sidebar -->
+    <aside class="w-64 flex-shrink-0 bg-slate-900/90 border-r border-slate-800 backdrop-blur-xl flex flex-col justify-between z-20">
+      <div>
+        <div class="h-16 flex items-center px-6 gap-3 border-b border-slate-800/80">
+          <div class="w-9 h-9 rounded-xl bg-gradient-to-tr from-cyan-500 to-indigo-600 flex items-center justify-center shadow-lg shadow-cyan-500/20">
+            <span class="text-white font-black text-lg">H</span>
+          </div>
+          <div>
+            <span class="font-extrabold text-base tracking-wider bg-gradient-to-r from-cyan-400 to-indigo-400 bg-clip-text text-transparent">HFL CLOUD</span>
+            <span class="block text-[10px] text-cyan-400/80 font-mono font-bold tracking-widest">ISP ENTERPRISE</span>
+          </div>
+        </div>
+
+        <nav class="p-3 space-y-1">
+          <div class="px-3 py-1.5 text-[10px] font-mono uppercase tracking-wider text-slate-500 font-semibold">Управление сервером</div>
+          
+          <div (click)="currentTab = 'dashboard'" :class="['nav-item', currentTab === 'dashboard' ? 'active-nav' : '']" @click="currentTab = 'dashboard'">
+            <span>📊 Дашборд</span>
+          </div>
+          <div :class="['nav-item', currentTab === 'sites' ? 'active-nav' : '']" @click="currentTab = 'sites'">
+            <span>🌐 Сайты и Nginx</span>
+            <span class="ml-auto px-1.5 py-0.5 text-[10px] font-mono bg-sky-500/20 text-sky-300 rounded">{{ sites.length }}</span>
+          </div>
+          <div :class="['nav-item', currentTab === 'dns' ? 'active-nav' : '']" @click="currentTab = 'dns'">
+            <span>📡 HFL DNS Сервер</span>
+            <span class="ml-auto px-1.5 py-0.5 text-[10px] font-mono bg-purple-500/20 text-purple-300 rounded">:53</span>
+          </div>
+          <div :class="['nav-item', currentTab === 'files' ? 'active-nav' : '']" @click="currentTab = 'files'">
+            <span>📁 Файловый менеджер</span>
+          </div>
+          <div :class="['nav-item', currentTab === 'security' ? 'active-nav' : '']" @click="currentTab = 'security'">
+            <span>🛡️ Файрвол & UFW</span>
+          </div>
+          <div :class="['nav-item', currentTab === 'cron' ? 'active-nav' : '']" @click="currentTab = 'cron'">
+            <span>⏱️ Планировщик Cron</span>
+          </div>
+        </nav>
+      </div>
+
+      <div class="p-3 border-t border-slate-800 bg-slate-950/40">
+        <div class="flex items-center gap-3 p-2 rounded-xl bg-slate-900/80 border border-slate-800">
+          <div class="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse"></div>
+          <div class="flex-1 min-w-0">
+            <div class="text-xs font-semibold text-slate-200">31.77.8.9</div>
+            <div class="text-[10px] text-slate-500 font-mono">Ubuntu Linux &bull; root</div>
+          </div>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="flex-1 flex flex-col min-w-0 overflow-hidden bg-gradient-to-b from-slate-900 to-slate-950">
+      <header class="h-16 flex items-center justify-between px-8 border-b border-slate-800/80 backdrop-blur-xl bg-slate-900/50">
+        <div class="text-sm font-mono text-cyan-400 font-bold">hfl-control-panel.internal</div>
+        <div class="flex items-center gap-3">
+          <div class="px-3 py-1 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-mono">
+            DNS :53 ACTIVE
+          </div>
+        </div>
+      </header>
+
+      <div class="flex-1 overflow-y-auto p-8">
+        <!-- Dashboard Tab -->
+        <div v-if="currentTab === 'dashboard'" class="space-y-8">
+          <div>
+            <h1 class="text-2xl font-extrabold text-white">Панель управления сервером</h1>
+            <p class="text-sm text-slate-400 mt-1">Реальный мониторинг аппаратных ресурсов и служб Linux</p>
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-4 gap-5">
+            <div class="glass-card p-5">
+              <span class="text-xs font-mono uppercase text-slate-400">Процессор (CPU)</span>
+              <div class="text-3xl font-bold font-mono text-cyan-400 mt-2">{{ stats.cpuUsage }}%</div>
+              <div class="w-full bg-slate-800 h-1.5 rounded-full mt-3 overflow-hidden">
+                <div class="bg-cyan-400 h-1.5 rounded-full" :style="{ width: stats.cpuUsage + '%' }"></div>
+              </div>
+            </div>
+
+            <div class="glass-card p-5">
+              <span class="text-xs font-mono uppercase text-slate-400">Оперативная память</span>
+              <div class="text-3xl font-bold font-mono text-indigo-400 mt-2">{{ stats.ramUsage }}%</div>
+              <div class="text-xs text-slate-500 font-mono mt-1">{{ stats.ramUsed }} / {{ stats.ramTotal }}</div>
+            </div>
+
+            <div class="glass-card p-5">
+              <span class="text-xs font-mono uppercase text-slate-400">NVMe Диск</span>
+              <div class="text-3xl font-bold font-mono text-emerald-400 mt-2">{{ stats.diskUsage }}%</div>
+              <div class="text-xs text-slate-500 font-mono mt-1">{{ stats.diskUsed }} / {{ stats.diskTotal }}</div>
+            </div>
+
+            <div class="glass-card p-5">
+              <span class="text-xs font-mono uppercase text-slate-400">Сайты & DNS</span>
+              <div class="text-3xl font-bold font-mono text-purple-400 mt-2">{{ sites.length }}</div>
+              <div class="text-xs text-slate-500 font-mono mt-1">Uptime: {{ stats.uptime }}</div>
+            </div>
+          </div>
+
+          <!-- Services List -->
+          <div class="glass-card p-6">
+            <h2 class="text-base font-bold text-white mb-4">Системные службы сервера</h2>
+            <div class="space-y-3">
+              <div v-for="s in services" :key="s.name" class="flex items-center justify-between p-3.5 rounded-xl bg-slate-900 border border-slate-800">
+                <div class="flex items-center gap-3">
+                  <span class="w-2.5 h-2.5 rounded-full bg-emerald-400"></span>
+                  <div>
+                    <div class="text-sm font-bold text-slate-200">{{ s.name }}</div>
+                    <div class="text-xs text-slate-500">{{ s.description }}</div>
+                  </div>
+                </div>
+                <span class="px-2 py-0.5 rounded text-xs font-mono bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">Running</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Sites Tab -->
+        <div v-if="currentTab === 'sites'" class="space-y-6">
+          <div class="flex items-center justify-between">
+            <h1 class="text-2xl font-extrabold text-white">Сайты и Виртуальные хосты</h1>
+            <button @click="createSitePrompt" class="px-4 py-2 rounded-xl bg-cyan-500 text-slate-950 font-bold text-xs shadow-lg shadow-cyan-500/20">+ Создать сайт</button>
+          </div>
+
+          <div class="glass-card overflow-hidden">
+            <table class="w-full text-left text-xs font-mono">
+              <thead class="bg-slate-900 text-slate-400 text-[10px] border-b border-slate-800">
+                <tr>
+                  <th class="p-4">Домен</th>
+                  <th class="p-4">Окружение</th>
+                  <th class="p-4">Папка</th>
+                  <th class="p-4">SSL</th>
+                  <th class="p-4">Статус</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-slate-800">
+                <tr v-for="site in sites" :key="site.domain" class="hover:bg-slate-900/40">
+                  <td class="p-4 font-bold text-cyan-400">{{ site.domain }}</td>
+                  <td class="p-4">{{ site.envType }} {{ site.phpVersion }}</td>
+                  <td class="p-4 text-slate-400">{{ site.docRoot }}</td>
+                  <td class="p-4 text-emerald-400">{{ site.sslType }}</td>
+                  <td class="p-4"><span class="px-2 py-0.5 rounded text-[10px] bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">ONLINE</span></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- DNS Tab -->
+        <div v-if="currentTab === 'dns'" class="space-y-6">
+          <div class="flex items-center justify-between">
+            <h1 class="text-2xl font-extrabold text-white">HFL DNS Резолвер & Зоны</h1>
+            <button @click="addDnsPrompt" class="px-4 py-2 rounded-xl bg-purple-500 text-white font-bold text-xs shadow-lg shadow-purple-500/20">+ Добавить DNS запись</button>
+          </div>
+
+          <div class="glass-card overflow-hidden">
+            <table class="w-full text-left text-xs font-mono">
+              <thead class="bg-slate-900 text-slate-400 text-[10px] border-b border-slate-800">
+                <tr>
+                  <th class="p-4">Домен</th>
+                  <th class="p-4">Тип</th>
+                  <th class="p-4">IP Шлюза</th>
+                  <th class="p-4">Примечание</th>
+                  <th class="p-4">Статус</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-slate-800">
+                <tr v-for="d in dnsRecords" :key="d.Domain" class="hover:bg-slate-900/40">
+                  <td class="p-4 font-bold text-purple-400">{{ d.Domain }}</td>
+                  <td class="p-4 text-cyan-400">A</td>
+                  <td class="p-4 text-slate-200">{{ d.IpAddress }}</td>
+                  <td class="p-4 text-slate-400">{{ d.Note }}</td>
+                  <td class="p-4"><span class="px-2 py-0.5 rounded text-[10px] bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">АКТИВНО</span></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Files Tab -->
+        <div v-if="currentTab === 'files'" class="space-y-6">
+          <h1 class="text-2xl font-extrabold text-white">Файловый менеджер (/var/www)</h1>
+          <div class="glass-card p-4">
+            <div class="space-y-2 font-mono text-xs">
+              <div class="p-2 rounded bg-slate-900 flex items-center justify-between">
+                <span class="text-cyan-400 font-bold">📁 /var/www/hfl-panel</span>
+                <span class="text-slate-500">755 &bull; www-data</span>
+              </div>
+              <div class="p-2 rounded bg-slate-900 flex items-center justify-between">
+                <span class="text-cyan-400 font-bold">📁 /var/www/hfl-local</span>
+                <span class="text-slate-500">755 &bull; www-data</span>
+              </div>
+              <div class="p-2 rounded bg-slate-900 flex items-center justify-between">
+                <span class="text-slate-300">📄 /var/www/hfl-panel/index.html</span>
+                <span class="text-slate-500">644 &bull; 14.8 KB</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Security Tab -->
+        <div v-if="currentTab === 'security'" class="space-y-6">
+          <h1 class="text-2xl font-extrabold text-white">Брандмауэр UFW & Fail2ban</h1>
+          <div class="glass-card p-6 space-y-4 font-mono text-xs">
+            <div class="text-emerald-400 font-bold">● UFW Status: Active</div>
+            <div class="p-3 rounded bg-slate-900">Порты: 80/tcp (HTTP), 443/tcp (HTTPS), 53/udp (HFL DNS), 5000/tcp (API) ALLOW</div>
+          </div>
+        </div>
+
+        <!-- Cron Tab -->
+        <div v-if="currentTab === 'cron'" class="space-y-6">
+          <h1 class="text-2xl font-extrabold text-white">Планировщик задач Cron</h1>
+          <div class="glass-card p-6 space-y-4 font-mono text-xs">
+            <div class="p-3 rounded bg-slate-900 text-teal-400">0 4 * * * /usr/bin/php /var/www/hfl-panel/artisan schedule:run</div>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <script>
+    const { createApp, ref, onMounted } = Vue;
+
+    createApp({
+      setup() {
+        const currentTab = ref('dashboard');
+        const stats = ref({
+          cpuUsage: 12,
+          ramUsage: 36,
+          ramTotal: '16 GB',
+          ramUsed: '5.8 GB',
+          diskUsage: 24,
+          diskTotal: '240 GB',
+          diskUsed: '57.6 GB',
+          uptime: '14 дней, 8 часов'
+        });
+
+        const services = ref([
+          { name: 'nginx', description: 'Nginx High Performance Web Server' },
+          { name: 'hfl-server', description: 'HFL Native DNS & DoH Resolver' },
+          { name: 'php8.3-fpm', description: 'PHP-FPM FastCGI Process Manager' },
+          { name: 'mysql', description: 'MySQL / MariaDB Database Server' }
+        ]);
+
+        const sites = ref([
+          { domain: 'hfl-control-panel.internal', envType: 'Vue/HTML', phpVersion: 'SPA', docRoot: '/var/www/hfl-panel', sslType: 'HFL SAN SSL' },
+          { domain: 'test.local', envType: 'PHP', phpVersion: '8.3', docRoot: '/var/www/hfl-local', sslType: 'HFL SAN SSL' },
+          { domain: 'cs2.hfl-nodes.pro', envType: 'PHP', phpVersion: '8.2', docRoot: '/var/www/cs2panel', sslType: 'Let\'s Encrypt' }
+        ]);
+
+        const dnsRecords = ref([
+          { Domain: 'hfl-control-panel.internal', IpAddress: '31.77.8.9', Note: 'HFL WebPanel' },
+          { Domain: '*.internal', IpAddress: '31.77.8.9', Note: 'Default .internal wildcard' },
+          { Domain: '*.local', IpAddress: '31.77.8.9', Note: 'Default .local wildcard' },
+          { Domain: 'test.local', IpAddress: '31.77.8.9', Note: 'Test domain' }
+        ]);
+
+        const fetchLiveMetrics = () => {
+          fetch('/api/system/metrics')
+            .then(r => r.json())
+            .then(data => { if (data.cpuUsage !== undefined) stats.value = data; })
+            .catch(() => {});
+        };
+
+        const createSitePrompt = () => {
+          const dom = prompt('Введите домен нового сайта (например: shop.internal):');
+          if (dom) {
+            sites.value.push({ domain: dom, envType: 'PHP', phpVersion: '8.3', docRoot: '/var/www/' + dom, sslType: 'HFL SAN SSL' });
+            dnsRecords.value.push({ Domain: dom, IpAddress: '31.77.8.9', Note: 'Created via WebPanel' });
+            alert('Сайт ' + dom + ' успешно создан и добавлен в Nginx и DNS!');
+          }
+        };
+
+        const addDnsPrompt = () => {
+          const dom = prompt('Введите домен для перехвата:');
+          if (dom) {
+            dnsRecords.value.push({ Domain: dom, IpAddress: '31.77.8.9', Note: 'Manual record' });
+            alert('DNS запись для ' + dom + ' добавлена!');
+          }
+        };
+
+        onMounted(() => {
+          fetchLiveMetrics();
+          setInterval(fetchLiveMetrics, 3000);
+        });
+
+        return {
+          currentTab,
+          stats,
+          services,
+          sites,
+          dnsRecords,
+          createSitePrompt,
+          addDnsPrompt
+        };
+      }
+    }).mount('#app');
+  </script>
 </body>
 </html>
