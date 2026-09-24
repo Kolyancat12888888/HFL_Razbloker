@@ -2,6 +2,9 @@
 bin/
 obj/
 publish/
+publish_dist/
+node_modules/
+dist/
 *.user
 *.suo
 *.userosscache

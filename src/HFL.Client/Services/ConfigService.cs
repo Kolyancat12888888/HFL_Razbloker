@@ -11,6 +11,7 @@ namespace HFL.Client.Services
         public bool DirectRuRouting { get; set; } = true;
         public string CustomDohUrl { get; set; } = "";
         public bool AutoStartWithWindows { get; set; } = false;
+        public bool AutoInstallCerts { get; set; } = true;
     }
 
     public static class ConfigService
