@@ -62,14 +62,15 @@ fi
 if [ -d /etc/nginx/sites-available ]; then
     cp deploy/nginx/hfl-local.conf /etc/nginx/sites-available/hfl-local.conf
     ln -sf /etc/nginx/sites-available/hfl-local.conf /etc/nginx/sites-enabled/hfl-local.conf
+    cp deploy/nginx/hfl-panel.conf /etc/nginx/sites-available/hfl-panel.conf
+    ln -sf /etc/nginx/sites-available/hfl-panel.conf /etc/nginx/sites-enabled/hfl-panel.conf
     nginx -t && systemctl reload nginx 2>/dev/null || true
 fi
 
-# 6. Deploy HFL WebPanel (Laravel Backend & Angular Frontend)
-echo "💎 Развертывание HFL WebPanel Enterprise..."
+# 6. Deploy HFL WebPanel on hfl-control-panel.internal
+echo "💎 Развертывание HFL WebPanel Enterprise на http://hfl-control-panel.internal..."
 mkdir -p /var/www/hfl-panel
 cp -r src/HFL.WebPanel/frontend/src/* /var/www/hfl-panel/ 2>/dev/null || true
-cp deploy/nginx/index.html /var/www/hfl-panel/index.html 2>/dev/null || true
 
 # 7. Create systemd service
 cat << 'EOF' > /etc/systemd/system/hfl-server.service
